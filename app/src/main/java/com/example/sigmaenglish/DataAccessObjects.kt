@@ -10,13 +10,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface DataAccessObjects {
     @Upsert
-    suspend fun insertTask(task: DBType.Task)
+    suspend fun insertWord(task: DBType.Word)
     @Delete
-    suspend fun deleteTask(task: DBType.Task)
+    suspend fun deleteWord(task: DBType.Word)
 
-    @Query(" SELECT * FROM Task")
-    fun readAllData(): LiveData<List<DBType.Task>>
-
-    @Query(" SELECT * FROM Task ORDER BY checkedState DESC")
-    fun getTaskOrderedByCompletion(): Flow<List<DBType.Task>>
+    @Query(" SELECT * FROM Word")
+    fun readAllData(): LiveData<List<DBType.Word>>
 }

@@ -9,22 +9,24 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [DBType.Task::class],
-    version = 1,
+    entities = [DBType.Word::class],
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
-abstract class TaskDataBase : RoomDatabase() {
+abstract class WordDatabase : RoomDatabase() {
 
     abstract fun dao(): DataAccessObjects
 
     companion object {
         @Volatile
-        private var INSTANCE: TaskDataBase? = null
+        private var INSTANCE: WordDatabase? = null
 
-        fun getDatabase(context: Context): TaskDataBase {
+        fun getDatabase(context: Context): WordDatabase {
             val tempInstance = INSTANCE
             if (tempInstance != null) {
                 return tempInstance
@@ -32,9 +34,11 @@ abstract class TaskDataBase : RoomDatabase() {
             synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
-                    TaskDataBase::class.java,
-                    "task_database"
-                ).build()
+                    WordDatabase::class.java,
+                    "words_database"
+                )
+                    .addMigrations(MIGRATION_1_2)  // Add migration here
+                    .build()
                 INSTANCE = instance
                 return instance
             }
@@ -53,5 +57,12 @@ class Converters {
     fun toMutableState(value: Boolean): MutableState<Boolean> {
         return mutableStateOf(value)
         Log.d("Converter", "returning value ${mutableStateOf(value)}")
+    }
+}
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Example of adding a new column
+        // Adjust according to your schema changes
+        database.execSQL("ALTER TABLE Word ADD COLUMN description TEXT")
     }
 }

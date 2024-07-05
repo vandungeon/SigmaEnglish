@@ -12,4 +12,13 @@ class DBType {
         @PrimaryKey(autoGenerate = true)
         val id: Int = 0
     )
+    @Entity
+    data class Word(
+        val english: String,
+        val russian: String,
+        @PrimaryKey(autoGenerate = true)
+        val id: Int = 0,
+        val description: String
+    )
+
 }

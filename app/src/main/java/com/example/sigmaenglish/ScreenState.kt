@@ -1,7 +1,9 @@
 package com.example.sigmaenglish
 
 data class ScreenState(
-    val tasks: List<DBType.Task> = emptyList(),
-    val text: String = ""
+    val words: List<DBType.Word> = emptyList(),
+    val textOriginal: String = "",
+    val textTranslation: String = "",
+    val textDescription: String = ""
 )
 

@@ -4,13 +4,13 @@ import androidx.lifecycle.LiveData
 
 class Repository (private val dataAccessObjects: DataAccessObjects){
 
-    val readAllData: LiveData<List<DBType.Task>> = dataAccessObjects.readAllData()
+    val readAllData: LiveData<List<DBType.Word>> = dataAccessObjects.readAllData()
 
-    suspend fun addTASK(task: DBType.Task){
-        dataAccessObjects.insertTask(task)
+    suspend fun insertWord(word: DBType.Word){
+        dataAccessObjects.insertWord(word)
     }
 
-    suspend fun deleteTASK(task: DBType.Task) {
-        dataAccessObjects.deleteTask(task)
+    suspend fun deleteWord(word: DBType.Word) {
+        dataAccessObjects.deleteWord(word)
     }
 }

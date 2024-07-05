@@ -1,12 +1,15 @@
+package com.example.sigmaenglish
+
 import android.app.Application
 import android.util.Log
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.sigmaenglish.DBType
-import com.example.sigmaenglish.TaskDataBase
+import com.example.sigmaenglish.WordDatabase
 import com.example.sigmaenglish.Repository
 import com.example.sigmaenglish.ScreenState
 import kotlinx.coroutines.Dispatchers
@@ -14,44 +17,48 @@ import kotlinx.coroutines.launch
 
 class ViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: Repository
-    private val taskDAO = TaskDataBase.getDatabase(application).dao()
+    private val wordDAO = WordDatabase.getDatabase(application).dao()
 
-    // LiveData to observe changes in the list of tasks
-    private val _tasks = MediatorLiveData<List<DBType.Task>>()
-    val tasks: LiveData<List<DBType.Task>> = _tasks
+    // LiveData to observe changes in the list of words
+    private val _words = MediatorLiveData<List<DBType.Word>>()
+    val words: LiveData<List<DBType.Word>> = _words
 
     // MutableState for managing UI text input
     private val _state = mutableStateOf(ScreenState())
     val state: ScreenState get() = _state.value
 
     init {
-        repository = Repository(taskDAO)
-        _tasks.addSource(repository.readAllData) { tasks ->
-            _tasks.value = tasks
-            _state.value = _state.value.copy(tasks = tasks)
-            Log.d("TaskViewModel", "Tasks updated: $tasks")
+        repository = Repository(wordDAO)
+        _words.addSource(repository.readAllData) { words ->
+            _words.value = words
+            _state.value = _state.value.copy(words = words) // Update ScreenState with words
+            Log.d("com.example.sigmaenglish.ViewModel", "Words updated: $words")
         }
     }
 
-    fun addTask(task: DBType.Task) {
-        Log.d("TaskViewModel", "Adding task: ${task.bodyTask}")
+    fun addWord(word: DBType.Word) {
+        Log.d("com.example.sigmaenglish.ViewModel", "Adding word: ${word.english}")
         viewModelScope.launch(Dispatchers.IO) {
-            repository.addTASK(task)
-            Log.d("TaskViewModel", "Task added successfully")
+            repository.insertWord(word)
+            Log.d("com.example.sigmaenglish.ViewModel", "Word added successfully")
         }
     }
 
-    fun deleteTask(task: DBType.Task) {
-        Log.d("TaskViewModel", "Deleting task: ${task.bodyTask}")
+    fun deleteWord(word: DBType.Word) {
+        Log.d("com.example.sigmaenglish.ViewModel", "Deleting word: ${word.english}")
         viewModelScope.launch(Dispatchers.IO) {
-            repository.deleteTASK(task)
-            Log.d("TaskViewModel", "Task deleted successfully")
+            repository.deleteWord(word)
+            Log.d("com.example.sigmaenglish.ViewModel", "Word deleted successfully")
         }
     }
 
-    fun updateText(newText: String) {
-        Log.d("TaskViewModel", "Updating text: $newText")
-        _state.value = _state.value.copy(text = newText)
+    fun updateText(newTextOrg: String, newTextTrans: String, newTextDesc: String) {
+        Log.d("com.example.sigmaenglish.ViewModel", "Updating text: $newTextOrg")
+        _state.value = _state.value.copy(textOriginal = newTextOrg)
+        Log.d("com.example.sigmaenglish.ViewModel", "Updating text: $newTextTrans")
+        _state.value = _state.value.copy(textTranslation = newTextTrans)
+        Log.d("com.example.sigmaenglish.ViewModel", "Updating text: $newTextDesc")
+        _state.value = _state.value.copy(textDescription = newTextDesc)
     }
+
 }
-
