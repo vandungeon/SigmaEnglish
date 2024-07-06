@@ -1,36 +1,42 @@
 package com.example.sigmaenglish
 
-import android.app.Application
-import android.content.Context
-import android.content.ContextWrapper
+import android.annotation.SuppressLint
+import android.graphics.drawable.Icon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,7 +57,7 @@ fun NavigationComponent(viewModel: ViewModel) {
     NavHost(navController = navController, startDestination = "start") {
         composable("start") { StartScreen(navController) }
         composable("screen1") { WordListScreen(viewModel, navController) }
-        composable("screen2") { TrainingScreen(navController) }
+        composable("screen2") { TrainingScreen(viewModel, navController) }
     }
 }
 
@@ -85,8 +91,8 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
+                    containerColor = colorScheme.primaryContainer,
+                    titleContentColor = colorScheme.primary,
                 ),
                 title = {
                     Text("Top app bar")
@@ -95,8 +101,8 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         },
         bottomBar = {
             BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.primary,
+                containerColor = colorScheme.primaryContainer,
+                contentColor = colorScheme.primary,
             ) {
                 Text(
                     modifier = Modifier.fillMaxWidth(),
@@ -159,24 +165,180 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
 }
 
 @Composable
-fun TrainingScreen(navController: NavHostController) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures { change, dragAmount ->
-                    if (dragAmount < -50) { // Swipe right to left
-                        navController.navigate("start") {
-                            popUpTo("start") { inclusive = true }
+fun TrainingScreen(viewModel: ViewModel, navController: NavHostController) {
+    var currentScreen by remember { mutableStateOf("settings") }
+    var wordCount by remember { mutableStateOf(0) }
+
+    when (currentScreen) {
+        "settings" -> SettingsScreen(
+            onStart = {
+                    count -> wordCount = count
+                currentScreen = "training"
+            }, navController
+        )
+        "training" -> WordTrainingScreen(viewModel, wordCount)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(onStart: (Int) -> Unit, navController: NavHostController) {
+    var showDialog by remember { mutableStateOf(false) }
+    var selectedNumber by remember { mutableIntStateOf(0) }
+    var selectedType by remember { mutableStateOf("") }
+
+    val numbers = listOf(10, 25, 50, 100) // List of numbers to display
+    val types = listOf("Last 10", "Last 25", "All") // List of types to display
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = colorScheme.primaryContainer,
+                    titleContentColor = colorScheme.primary,
+                ),
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row {
+                            numbers.forEach { number ->
+                                Text(
+                                    text = number.toString(),
+                                    modifier = Modifier
+
+                                        .clickable { selectedNumber = number }
+                                        .padding(horizontal = 25.dp),
+                                    //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
+                                    color = if (selectedNumber == number) Color.Green else Color.Black,
+                                )
+                            }
                         }
                     }
                 }
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Screen 2", style = MaterialTheme.typography.headlineMedium)
+            )
+        },
+        bottomBar = {
+            BottomAppBar(
+                containerColor = colorScheme.primaryContainer,
+                contentColor = colorScheme.primary,
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    Row {
+                        types.forEach { type ->
+                            Text(
+                                text = type,
+                                modifier = Modifier
+                                    .clickable { selectedType = type }
+                                    .padding(horizontal = 25.dp),
+                                //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
+                                color = if (selectedType == type) Color.Green else Color.Black,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures { change, dragAmount ->
+                        if (dragAmount < -50) { // Swipe right to left
+                            navController.navigate("start") {
+                                popUpTo("start") { inclusive = true }
+                            }
+                        }
+                    }
+                },
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Start",
+                    modifier = Modifier
+                        .clickable { onStart(selectedNumber) }
+                        .padding(horizontal = 25.dp),
+
+                    color = Color.Black,
+                )
+            }
+        }
     }
 }
+
+@Composable
+fun WordTrainingScreen(viewModel: ViewModel, wordCount: Int) {
+    var isExpanded by remember { mutableStateOf(false) }
+    var text by remember { mutableStateOf("Description") }
+
+    SigmaEnglishTheme {
+        Scaffold(
+            bottomBar = {
+                BottomAppBar(
+                    contentColor = Color.LightGray, // Adjust as per your color scheme
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp), // Adjust height as needed
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Skip",
+                            //modifier = Modifier.clickable(onClick = null)
+                            color = Color.Black
+                        )
+                    }
+                }
+            }
+        ) {
+            Text(
+                "0/x",
+                fontSize = 50.sp,
+                modifier = Modifier.padding(26.dp),
+                color = colorScheme.primary
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .padding(vertical = 250.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+
+                ) {
+                Text("Word", fontSize = 50.sp)
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    shadowElevation = 1.dp,
+                    color = /*surfaceColor*/MaterialTheme.colorScheme.surface,
+                    modifier = Modifier
+                        .animateContentSize()
+                        .padding(all = 4.dp)
+                )
+                {
+                    Hint(
+                        initialText = "Description",
+                        expandedText = "This is a test description",
+                        icon = Icons.Default.Info
+                    )
+                }
+            }
+
+        }
+    }
+}
+
 @Composable
 fun AddWordDialog(
     viewModel: ViewModel,
@@ -266,8 +428,8 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
+                    containerColor = colorScheme.primaryContainer,
+                    titleContentColor = colorScheme.primary,
                 ),
                 title = {
                     Text("Top app bar")
@@ -276,8 +438,8 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
         },
         bottomBar = {
             BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.primary,
+                containerColor = colorScheme.primaryContainer,
+                contentColor = colorScheme.primary,
             ) {
                 Text(
                     modifier = Modifier.fillMaxWidth(),
@@ -324,10 +486,201 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true)
 @Composable
 fun PreviewLearning() {
     SigmaEnglishTheme {
-        TrainingScreen(navController = rememberNavController())
+
+
+        var showDialog by remember { mutableStateOf(false) }
+        var selectedNumber by remember { mutableStateOf(0) }
+        var selectedType by remember { mutableStateOf("") }
+
+        val numbers = listOf(10, 25, 50, 100) // List of numbers to display
+        val types = listOf("Last 10", "Last 25", "All") // List of types to display
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = colorScheme.primaryContainer,
+                        titleContentColor = colorScheme.primary,
+                    ),
+                    title = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row {
+                                numbers.forEach { number ->
+                                    Text(
+                                        text = number.toString(),
+                                        modifier = Modifier
+
+                                            .clickable { selectedNumber = number }
+                                            .padding(horizontal = 25.dp),
+                                        //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
+                                        color = if (selectedNumber == number) Color.Green else Color.Black,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                )
+            },
+            bottomBar = {
+                BottomAppBar(
+                    containerColor = colorScheme.primaryContainer,
+                    contentColor = colorScheme.primary,
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        Row {
+                            types.forEach { type ->
+                                Text(
+                                    text = type,
+                                    modifier = Modifier
+                                        .clickable { selectedType = type }
+                                        .padding(horizontal = 25.dp),
+                                    //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
+                                    color = if (selectedType == type) Color.Green else Color.Black,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures { change, dragAmount ->
+                            if (dragAmount < -50) { // Swipe right to left
+                            }
+                        }
+                    },
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Start",
+                        modifier = Modifier
+                            .clickable { }
+                            .padding(horizontal = 25.dp),
+
+                        color = Color.Black,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun WordTrainingScreenPreview() {
+    var isExpanded by remember { mutableStateOf(false) }
+    var text by remember { mutableStateOf("Description") }
+    var textfield by remember { mutableStateOf("Write your translation here")}
+    SigmaEnglishTheme {
+        Scaffold(
+            bottomBar = {
+                BottomAppBar(
+                    contentColor = Color.LightGray, // Adjust as per your color scheme
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp), // Adjust height as needed
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Skip",
+                            //modifier = Modifier.clickable(onClick = null)
+                            color = Color.Black
+                        )
+                    }
+                }
+            }
+        ) {
+            Text(
+                "0/10",
+                fontSize = 50.sp,
+                modifier = Modifier.padding(26.dp),
+                color = colorScheme.primary
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .padding(vertical = 250.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+
+                ) {
+                Text("Word", fontSize = 50.sp)
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    shadowElevation = 1.dp,
+                    color = /*surfaceColor*/MaterialTheme.colorScheme.surface,
+                    modifier = Modifier
+                        .animateContentSize()
+                        .padding(all = 16.dp)
+                )
+                {
+                    Hint(
+                        initialText = "Description",
+                        expandedText = "This is a test description",
+                        icon = Icons.Default.Info
+                    )
+                }
+                HorizontalDivider(modifier = Modifier
+                    .padding(horizontal = 50.dp)
+                    .padding(vertical = 20.dp))
+                TextField(value = textfield, onValueChange = {textfield = it})
+            }
+
+        }
+    }
+}
+
+@Composable
+fun Hint(initialText: String, expandedText: String, icon: ImageVector) {
+    // State to track expanded state and current text
+    val (isExpanded, setExpanded) = remember { mutableStateOf(false) }
+    val (displayText, setDisplayText) = remember { mutableStateOf(initialText) }
+
+    // Toggle expanded state and change text accordingly
+    val onClick: () -> Unit = {
+        setExpanded(!isExpanded)
+        setDisplayText(if (isExpanded) initialText else expandedText)
+    }
+
+    Row(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(all = 8.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = "Info",
+            modifier = Modifier.padding(horizontal = 0.dp)
+        )
+        Text(
+            text = displayText,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 10.dp)
+        )
     }
 }
