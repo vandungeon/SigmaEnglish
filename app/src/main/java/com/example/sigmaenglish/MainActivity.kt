@@ -1,21 +1,41 @@
 package com.example.sigmaenglish
 
 import android.annotation.SuppressLint
+import android.app.Application
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.with
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
+import androidx.compose.material3.BottomSheetDefaults.ContainerColor
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -25,18 +45,33 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.os.bundleOf
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
 
+data class Word(
+    val english: String,
+    val russian: String,
+    val description: String,
+    var isCorrect: Boolean = false
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,11 +91,23 @@ fun NavigationComponent(viewModel: ViewModel) {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "start") {
         composable("start") { StartScreen(navController) }
-        composable("screen1") { WordListScreen(viewModel, navController) }
-        composable("screen2") { TrainingScreen(viewModel, navController) }
+        composable("WordListScreen") { WordListScreen(viewModel, navController) }
+        composable("trainingMenu") { TrainingMenu(viewModel, navController) }
+        composable("settings") { SettingsScreen(viewModel, navController) }
+        composable(
+            route = "WordTrainingMenu/{selectedNumber}/{selectedType}",
+            arguments = listOf(
+                navArgument("selectedNumber") { type = NavType.IntType },
+                navArgument("selectedType") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val selectedNumber = backStackEntry.arguments?.getInt("selectedNumber")
+            val selectedType = backStackEntry.arguments?.getString("selectedType")
+            WordTrainingMenu(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All")
+        }
+        //composable("results") { WordTrainingMenu(viewModel, navController) }
     }
 }
-
 @Composable
 fun StartScreen(navController: NavHostController) {
     Box(
@@ -72,11 +119,11 @@ fun StartScreen(navController: NavHostController) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Start Screen", style = MaterialTheme.typography.headlineMedium)
-            Button(onClick = { navController.navigate("screen1") }) {
-                Text("Go to Screen 1")
+            Button(onClick = { navController.navigate("WordListScreen") }) {
+                Text("Words List")
             }
-            Button(onClick = { navController.navigate("screen2") }) {
-                Text("Go to Screen 2")
+            Button(onClick = { navController.navigate("trainingMenu") }) {
+                Text("Training")
             }
         }
     }
@@ -164,25 +211,137 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
     }
 }
 
+@Preview
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TrainingScreen(viewModel: ViewModel, navController: NavHostController) {
-    var currentScreen by remember { mutableStateOf("settings") }
-    var wordCount by remember { mutableStateOf(0) }
+fun ResultsScreen(viewModel: ViewModel ? = null, navController: NavHostController ? = null) {
+    Scaffold(
+        bottomBar = {
+            BottomAppBar(
+                containerColor = colorScheme.primaryContainer,
+                contentColor = colorScheme.primary,
+            ) {
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        //modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        text = "Button place holder",
+                    )
+                    Text(
+                        //modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        text = "Button placeholder",
+                    )
+                    Text(
+                        //modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        text = "Button placeholder",
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(vertical = 300.dp)
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures { change, dragAmount ->
+                        if (dragAmount < -50) { // Swipe right to left
+                         //   navController.navigate("start") {
+                            //    popUpTo("start") { inclusive = true }
+                           // }
+                        }
+                    }
+                },
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    fontSize = 20.sp,
+                    //modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    text = "words\n" ,
+                )
+                Text(
+                    fontSize = 20.sp,
+                    //modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    text = "Accuracy\n",
+                )
+            }
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    fontSize = 20.sp,
+                    //modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    text = "test type\n",
+                )
+                Text(
+                    fontSize = 20.sp,
+                    //modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    text = "time\n",
+                )
+            }
+        }
+    }
+}
 
-    when (currentScreen) {
-        "settings" -> SettingsScreen(
-            onStart = {
-                    count -> wordCount = count
-                currentScreen = "training"
-            }, navController
-        )
-        "training" -> WordTrainingScreen(viewModel, wordCount)
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
+    var selectedScreen by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Example cards for different modes
+        Text("Select a mode:")
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            ModeCard(mode = "settings", selectedScreen, onSelect = { selectedScreen = "settings" })
+            ModeCard(mode = "otherScreen", selectedScreen, onSelect = { selectedScreen = "otherScreen" })
+            // Add more ModeCard for additional screens
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Animated content based on selectedScreen
+        AnimatedContent(
+            targetState = selectedScreen,
+            transitionSpec = {
+                slideInHorizontally { width -> width } togetherWith slideOutHorizontally { width -> -width }
+            }
+        ) { screen ->
+            when (screen) {
+                "settings" -> navController.navigate("settings")
+                //"otherScreen" -> OtherScreen(viewModel = viewModel, navController = navController)
+                // Add more cases for additional screens
+                else -> { /* Handle default case or additional screens */ }
+            }
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onStart: (Int) -> Unit, navController: NavHostController) {
+fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
     var showDialog by remember { mutableStateOf(false) }
     var selectedNumber by remember { mutableIntStateOf(0) }
     var selectedType by remember { mutableStateOf("") }
@@ -267,76 +426,129 @@ fun SettingsScreen(onStart: (Int) -> Unit, navController: NavHostController) {
             ) {
                 Text(
                     text = "Start",
-                    modifier = Modifier
-                        .clickable { onStart(selectedNumber) }
-                        .padding(horizontal = 25.dp),
-
-                    color = Color.Black,
+                    modifier = Modifier.clickable {
+                        navController.navigate("WordTrainingMenu/$selectedNumber/$selectedType")
+                    }
                 )
+            }
+
+        }
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@Composable
+fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wordCount: Int, type: String) {
+
+    var textfield by remember { mutableStateOf("Write your translation here")}
+    var currentWordIndex: Int by remember { mutableIntStateOf(0) }
+    val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
+    val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) } .shuffled()
+    val words: List<Word> = shuffledWords.take(wordCount)
+
+    val onClick: () -> Unit = {
+        if((currentWordIndex + 1) < words.size) {
+            currentWordIndex++
+        }
+    }
+    if (words.isNotEmpty()) {
+        SigmaEnglishTheme {
+            Scaffold(
+                bottomBar = {
+                    BottomAppBar(
+                        contentColor = Color.LightGray, // Adjust as per your color scheme
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp), // Adjust height as needed
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Skip",
+                                modifier = Modifier.clickable(onClick = {onClick()
+                                    words[currentWordIndex].isCorrect = false}),
+                                color = Color.Black
+                            )
+                        }
+                    }
+                }
+            ) {
+                Text(
+                    "0/${wordCount}",
+                    fontSize = 50.sp,
+                    modifier = Modifier.padding(26.dp),
+                    color = colorScheme.primary
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                        .padding(vertical = 250.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    AnimatedContent(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        targetState = currentWordIndex,
+                        transitionSpec = {
+                            (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                                slideOutHorizontally { width -> -width } + fadeOut())
+                        }
+                    ) { index ->
+                        Text(words[index].english, fontSize = 50.sp, textAlign = TextAlign.Center)
+                    }
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        shadowElevation = 1.dp,
+                        color = /*surfaceColor*/MaterialTheme.colorScheme.surface,
+                        modifier = Modifier
+                            .animateContentSize()
+                            .padding(all = 16.dp)
+                    )
+                    {
+                        Hint(
+                            initialText = "Description",
+                            expandedText = words[currentWordIndex].description,
+                            icon = Icons.Default.Info
+                        )
+                    }
+                    HorizontalDivider(
+                        modifier = Modifier
+                            .padding(horizontal = 50.dp)
+                            .padding(vertical = 20.dp)
+                    )
+                    TextField(
+                        value = textfield,
+                        onValueChange = { textfield = it },
+                        placeholder = { Text("Write your translation here") },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    if (checkAnswer(textfield, words[currentWordIndex].russian)) {
+                                        textfield = ""
+                                        onClick()
+                                    } else {
+                                        words[currentWordIndex].isCorrect = false
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
             }
         }
     }
 }
 
-@Composable
-fun WordTrainingScreen(viewModel: ViewModel, wordCount: Int) {
-    var isExpanded by remember { mutableStateOf(false) }
-    var text by remember { mutableStateOf("Description") }
-
-    SigmaEnglishTheme {
-        Scaffold(
-            bottomBar = {
-                BottomAppBar(
-                    contentColor = Color.LightGray, // Adjust as per your color scheme
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp), // Adjust height as needed
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Skip",
-                            //modifier = Modifier.clickable(onClick = null)
-                            color = Color.Black
-                        )
-                    }
-                }
-            }
-        ) {
-            Text(
-                "0/x",
-                fontSize = 50.sp,
-                modifier = Modifier.padding(26.dp),
-                color = colorScheme.primary
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-                    .padding(vertical = 250.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-
-                ) {
-                Text("Word", fontSize = 50.sp)
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    shadowElevation = 1.dp,
-                    color = /*surfaceColor*/MaterialTheme.colorScheme.surface,
-                    modifier = Modifier
-                        .animateContentSize()
-                        .padding(all = 4.dp)
-                )
-                {
-                    Hint(
-                        initialText = "Description",
-                        expandedText = "This is a test description",
-                        icon = Icons.Default.Info
-                    )
-                }
-            }
-
-        }
-    }
+fun checkAnswer(userAnswer: String, correctAnswer: String): Boolean {
+    return userAnswer.trim().equals(correctAnswer.trim(), ignoreCase = true)
 }
 
 @Composable
@@ -348,7 +560,10 @@ fun AddWordDialog(
     var translationDescription by remember { mutableStateOf("") }
     var englishWord by remember { mutableStateOf("") }
     var russianWord by remember { mutableStateOf("") }
-
+    var enableButton by remember { mutableStateOf(false)}
+    fun validateInput(eng: String, rus: String): Boolean {
+        return eng.isNotEmpty() and rus.isNotEmpty()
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add New Word") },
@@ -356,13 +571,15 @@ fun AddWordDialog(
             Column {
                 TextField(
                     value = englishWord,
-                    onValueChange = { englishWord = it },
+                    onValueChange = { englishWord = it
+                        if(validateInput(englishWord, russianWord)){enableButton =true}},
                     label = { Text("English") }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
                     value = russianWord,
-                    onValueChange = { russianWord = it },
+                    onValueChange = { russianWord = it
+                                    if(validateInput(englishWord, russianWord)){enableButton =true}},
                     label = { Text("Russian") }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -375,9 +592,16 @@ fun AddWordDialog(
         },
         confirmButton = {
             Button(
+                enabled = enableButton,
                 onClick = {
-                    onConfirm(englishWord, russianWord, translationDescription)
-                    onDismiss()
+                        if(translationDescription.isNotEmpty()){
+                            onConfirm(englishWord, russianWord, translationDescription)
+                            onDismiss()
+                        }
+                        else{
+                            onConfirm(englishWord, russianWord, "No description provided")
+                            onDismiss()
+                        }
                 }
             ) {
                 Text("Add")
@@ -392,6 +616,57 @@ fun AddWordDialog(
         }
     )
 }
+
+@Composable
+fun Hint(initialText: String, expandedText: String, icon: ImageVector) {
+    // State to track expanded state and current text
+    val (isExpanded, setExpanded) = remember { mutableStateOf(false) }
+    val (displayText, setDisplayText) = remember { mutableStateOf(initialText) }
+
+    // Toggle expanded state and change text accordingly
+    val onClick: () -> Unit = {
+        setExpanded(!isExpanded)
+        setDisplayText(if (isExpanded) initialText else expandedText)
+    }
+
+    Row(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(all = 8.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = "Info",
+            modifier = Modifier.padding(horizontal = 0.dp)
+        )
+        Text(
+            text = displayText,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 10.dp)
+        )
+    }
+}
+@Composable
+fun ModeCard(mode: String, selectedScreen: String, onSelect: () -> Unit) {
+    Card(
+        modifier = Modifier.clickable(onClick = onSelect),
+        border = BorderStroke(2.dp, if (mode == selectedScreen) Color.Black else Color.Transparent),
+        elevation = CardDefaults.elevatedCardElevation(4.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardColors(contentColor = Color.LightGray, containerColor = Color.White, disabledContentColor = Color.DarkGray, disabledContainerColor = Color.DarkGray),
+        content = {
+            Text(
+                text = mode,
+                style = TextStyle(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    )
+}
+
 
 @Preview(showBackground = true)
 @Composable
@@ -490,10 +765,8 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true)
 @Composable
-fun PreviewLearning() {
+fun PreviewSettings() {
     SigmaEnglishTheme {
-
-
         var showDialog by remember { mutableStateOf(false) }
         var selectedNumber by remember { mutableStateOf(0) }
         var selectedType by remember { mutableStateOf("") }
@@ -588,13 +861,18 @@ fun PreviewLearning() {
 }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Preview
 @Composable
-fun WordTrainingScreenPreview() {
+fun WordTrainingMenuPreview() {
     var isExpanded by remember { mutableStateOf(false) }
     var text by remember { mutableStateOf("Description") }
     var textfield by remember { mutableStateOf("Write your translation here")}
+    var currentWordIndex by remember { mutableStateOf(0) }
+    val words = listOf("Word1", "Word2", "Word3") // Sample words for preview, надо будет заменить на оbserve as из бд
+    val onClick: () -> Unit = {
+        currentWordIndex++
+    }
     SigmaEnglishTheme {
         Scaffold(
             bottomBar = {
@@ -608,7 +886,7 @@ fun WordTrainingScreenPreview() {
                         contentAlignment = Alignment.Center
                     ) {
                         Text("Skip",
-                            //modifier = Modifier.clickable(onClick = null)
+                            modifier = Modifier.clickable(onClick = onClick),
                             color = Color.Black
                         )
                     }
@@ -627,9 +905,19 @@ fun WordTrainingScreenPreview() {
                     .padding(16.dp)
                     .padding(vertical = 250.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-
-                ) {
-                Text("Word", fontSize = 50.sp)
+            ) {
+                AnimatedContent(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    targetState = currentWordIndex,
+                    transitionSpec = {
+                        (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                            slideOutHorizontally { width -> -width } + fadeOut())
+                    }
+                ) { index ->
+                    Text(words[index], fontSize = 50.sp, textAlign = TextAlign.Center)
+                }
                 Surface(
                     shape = MaterialTheme.shapes.medium,
                     shadowElevation = 1.dp,
@@ -648,39 +936,24 @@ fun WordTrainingScreenPreview() {
                 HorizontalDivider(modifier = Modifier
                     .padding(horizontal = 50.dp)
                     .padding(vertical = 20.dp))
-                TextField(value = textfield, onValueChange = {textfield = it})
+                TextField(
+                    value = textfield,
+                    onValueChange = { textfield = it },
+                    placeholder = { Text("Write your translation here") },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                var isRight = checkAnswer(textfield, "")
+                                textfield = ""
+                            }
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
         }
-    }
-}
-
-@Composable
-fun Hint(initialText: String, expandedText: String, icon: ImageVector) {
-    // State to track expanded state and current text
-    val (isExpanded, setExpanded) = remember { mutableStateOf(false) }
-    val (displayText, setDisplayText) = remember { mutableStateOf(initialText) }
-
-    // Toggle expanded state and change text accordingly
-    val onClick: () -> Unit = {
-        setExpanded(!isExpanded)
-        setDisplayText(if (isExpanded) initialText else expandedText)
-    }
-
-    Row(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(all = 8.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = "Info",
-            modifier = Modifier.padding(horizontal = 0.dp)
-        )
-        Text(
-            text = displayText,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(horizontal = 10.dp)
-        )
     }
 }
