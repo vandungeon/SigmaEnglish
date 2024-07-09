@@ -53,7 +53,9 @@ android {
 dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.databinding.adapters)
+    implementation(libs.firebase.crashlytics.buildtools)
     annotationProcessor(libs.androidx.room.compiler)
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // To use Kotlin Symbol Processing (KSP)
     ksp(libs.androidx.room.compiler)
@@ -73,7 +75,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.extensions)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
-
 
     androidTestImplementation(libs.androidx.junit.v121)
     androidTestImplementation(libs.androidx.espresso.core.v361)

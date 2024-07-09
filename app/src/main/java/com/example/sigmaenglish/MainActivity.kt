@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.graphics.drawable.Icon
 import android.os.Bundle
+import android.provider.UserDictionary.Words
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -30,10 +31,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.BottomSheetDefaults.ContainerColor
 import androidx.compose.material3.MaterialTheme.colorScheme
@@ -48,6 +54,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -65,6 +73,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
+import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.reflect.TypeToken
+import com.google.gson.Gson
 
 data class Word(
     val english: String,
@@ -85,7 +95,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+fun convertWordsToJson(words: List<Word>): String {
+    val gson = Gson()
+    return gson.toJson(words)
+}
 
+fun convertJsonToWords(json: String): List<Word> {
+    val gson = Gson()
+    val type = object : TypeToken<List<Word>>() {}.type
+    return gson.fromJson(json, type)
+}
 @Composable
 fun NavigationComponent(viewModel: ViewModel) {
     val navController = rememberNavController()
@@ -105,7 +124,18 @@ fun NavigationComponent(viewModel: ViewModel) {
             val selectedType = backStackEntry.arguments?.getString("selectedType")
             WordTrainingMenu(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All")
         }
-        //composable("results") { WordTrainingMenu(viewModel, navController) }
+        composable(route = "ResultsScreen/{timeSpent}/{selectedType}",
+            arguments = listOf(
+                navArgument("timeSpent") { type = NavType.IntType },
+                navArgument("selectedType") { type = NavType.StringType },
+                navArgument("wordsLearned") { type = NavType.StringType}
+            )) { backStackEntry ->
+            val timeSpent = backStackEntry.arguments?.getInt("timeSpent")
+            val selectedType = backStackEntry.arguments?.getString("selectedType")
+            val wordsLearnedJson = backStackEntry.arguments?.getString("wordsLearned")
+            val wordsLearned = wordsLearnedJson?.let { convertJsonToWords(it) } ?: emptyList()
+            ResultsScreen(viewModel, navController, timeSpent, selectedType, wordsLearned)
+        }
     }
 }
 @Composable
@@ -210,93 +240,6 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         )
     }
 }
-
-@Preview
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ResultsScreen(viewModel: ViewModel ? = null, navController: NavHostController ? = null) {
-    Scaffold(
-        bottomBar = {
-            BottomAppBar(
-                containerColor = colorScheme.primaryContainer,
-                contentColor = colorScheme.primary,
-            ) {
-                Row(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(
-                        //modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        text = "Button place holder",
-                    )
-                    Text(
-                        //modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        text = "Button placeholder",
-                    )
-                    Text(
-                        //modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        text = "Button placeholder",
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(vertical = 300.dp)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures { change, dragAmount ->
-                        if (dragAmount < -50) { // Swipe right to left
-                         //   navController.navigate("start") {
-                            //    popUpTo("start") { inclusive = true }
-                           // }
-                        }
-                    }
-                },
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    fontSize = 20.sp,
-                    //modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "words\n" ,
-                )
-                Text(
-                    fontSize = 20.sp,
-                    //modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "Accuracy\n",
-                )
-            }
-            Row(modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    fontSize = 20.sp,
-                    //modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "test type\n",
-                )
-                Text(
-                    fontSize = 20.sp,
-                    //modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "time\n",
-                )
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
@@ -338,7 +281,6 @@ fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
@@ -435,12 +377,11 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
         }
     }
 }
-
 @OptIn(ExperimentalAnimationApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wordCount: Int, type: String) {
-
+    var time by remember { mutableStateOf(0)}
     var textfield by remember { mutableStateOf("Write your translation here")}
     var currentWordIndex: Int by remember { mutableIntStateOf(0) }
     val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
@@ -530,6 +471,10 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                                     if (checkAnswer(textfield, words[currentWordIndex].russian)) {
                                         textfield = ""
                                         onClick()
+                                        if (currentWordIndex + 1 == words.size){
+                                            navController.navigate("WordTrainingMenu/$time/$type")
+                                    }
+
                                     } else {
                                         words[currentWordIndex].isCorrect = false
                                     }
@@ -546,6 +491,163 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
         }
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController? = null, timeSpent: Int ? = null, selectedType: String ? = null, learnedWords: List<Word>) {
+    val words: String = buildString {
+        learnedWords.forEachIndexed { index, word ->
+            if (index < learnedWords.size - 2) {
+                append("${word.english} - ${word.russian}, ")
+            }
+            else if (index < learnedWords.size - 1) {
+                append("${word.english} - ${word.russian}")
+            }
+        }
+    }
+    val accuracy: String = buildString {
+        var correctScore = 0
+        learnedWords.forEach { word ->
+            if (word.isCorrect) {
+                correctScore++
+            }
+        }
+        val percentage = if (learnedWords.isNotEmpty()) {
+            (correctScore.toDouble() / learnedWords.size * 100).toInt()
+        } else {
+            0
+        }
+        append("$percentage%")
+    }
+
+
+
+    Scaffold(
+        bottomBar = {
+            BottomAppBar(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.primary,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    IconButton(onClick = {}) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    }
+                    IconButton(onClick = {}) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next")
+                    }
+                    IconButton(onClick = {}) {
+                        Icon(Icons.Default.Warning, contentDescription = "Mistakes")
+                    }
+                    IconButton(onClick = {}) {
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
+                    }
+                }
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Text(
+                fontSize = 40.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 50.dp),
+                textAlign = TextAlign.Center,
+                text = "Results:\n",
+            )
+            Text(
+                fontStyle = FontStyle.Italic,
+                fontSize = 20.sp,
+                modifier = Modifier
+                    .fillMaxWidth(),
+                textAlign = TextAlign.Left,
+                text = "Words: ${words}"
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = innerPadding.calculateBottomPadding() + 70.dp) // Adjust as needed
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures { change, dragAmount ->
+                            if (dragAmount < -50) { // Swipe right to left
+                                //   navController.navigate("start") {
+                                //    popUpTo("start") { inclusive = true }
+                                // }
+                            }
+                        }
+                    },
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // First Column
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(16.dp),
+                            fontSize = 30.sp,
+                            textAlign = TextAlign.Center,
+                            text = "words\n${learnedWords.size}",
+                        )
+                        Text(
+                            modifier = Modifier.padding(16.dp),
+                            fontSize = 30.sp,
+                            textAlign = TextAlign.Center,
+                            text = "Accuracy\n${accuracy}",
+                        )
+                    }
+
+                    // Second Column
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(16.dp),
+                            fontSize = 30.sp,
+                            textAlign = TextAlign.Center,
+                            text = "test type\n${selectedType}",
+                        )
+                        Text(
+                            modifier = Modifier.padding(16.dp),
+                            fontSize = 30.sp,
+                            textAlign = TextAlign.Center,
+                            text = "time\n${timeSpent}s",
+                        )
+                    }
+                }
+
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
 
 fun checkAnswer(userAnswer: String, correctAnswer: String): Boolean {
     return userAnswer.trim().equals(correctAnswer.trim(), ignoreCase = true)
@@ -956,4 +1058,19 @@ fun WordTrainingMenuPreview() {
 
         }
     }
+}
+
+@Composable
+@Preview
+fun ResultsPreview(){
+    val timeSpent = 10
+    val selectedType = "Standart"
+    val sampleWords: List<Word> = listOf(
+        Word(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
+        Word(english = "book", russian = "книга", description = "A written or printed work", false),
+        Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
+        Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
+        Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true)
+    )
+    ResultsScreen(null, null, timeSpent , selectedType, sampleWords)
 }

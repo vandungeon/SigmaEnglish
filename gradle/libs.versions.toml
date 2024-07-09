@@ -31,6 +31,7 @@ navigationCompose = "2.7.7"
 roomCommon = "2.6.1"
 roomKtx = "2.6.1"
 runtimeLivedataVersion = "1.6.7"
+firebaseCrashlyticsBuildtools = "3.0.2"
 
 [libraries]
 androidx-activity-compose-v190 = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
@@ -79,6 +80,7 @@ ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
