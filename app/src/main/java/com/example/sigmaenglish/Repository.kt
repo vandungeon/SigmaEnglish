@@ -13,4 +13,8 @@ class Repository (private val dataAccessObjects: DataAccessObjects){
     suspend fun deleteWord(word: DBType.Word) {
         dataAccessObjects.deleteWord(word)
     }
+
+    suspend fun updateWord(word: DBType.Word) {
+        dataAccessObjects.updateWord(word)
+    }
 }

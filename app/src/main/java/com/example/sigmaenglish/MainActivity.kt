@@ -14,6 +14,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -24,7 +25,11 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.with
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,6 +52,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -114,24 +120,27 @@ fun NavigationComponent(viewModel: ViewModel) {
         composable("trainingMenu") { TrainingMenu(viewModel, navController) }
         composable("settings") { SettingsScreen(viewModel, navController) }
         composable(
-            route = "WordTrainingMenu/{selectedNumber}/{selectedType}",
+            route = "WordTrainingMenu/{selectedNumber}/{selectedType}/{wordRefreshList}",
             arguments = listOf(
                 navArgument("selectedNumber") { type = NavType.IntType },
-                navArgument("selectedType") { type = NavType.StringType }
+                navArgument("selectedType") { type = NavType.StringType },
+                navArgument("wordRefreshList") {type = NavType.StringType}
             )
         ) { backStackEntry ->
             val selectedNumber = backStackEntry.arguments?.getInt("selectedNumber")
             val selectedType = backStackEntry.arguments?.getString("selectedType")
-            WordTrainingMenu(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All")
+            val wordRefresh = backStackEntry.arguments?.getString("wordRefreshList")
+            val wordRefreshList = wordRefresh?.let { convertJsonToWords(it) } ?: emptyList()
+            WordTrainingMenu(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All", wordRefreshList)
         }
-        composable(route = "ResultsScreen/{timeSpent}/{selectedType}",
+        composable(route = "ResultsScreen/{timeSpent}/{selectedType}/{wordsLearned}",
             arguments = listOf(
                 navArgument("timeSpent") { type = NavType.IntType },
                 navArgument("selectedType") { type = NavType.StringType },
                 navArgument("wordsLearned") { type = NavType.StringType}
             )) { backStackEntry ->
-            val timeSpent = backStackEntry.arguments?.getInt("timeSpent")
-            val selectedType = backStackEntry.arguments?.getString("selectedType")
+            val timeSpent = backStackEntry.arguments?.getInt("timeSpent")?: 0
+            val selectedType = backStackEntry.arguments?.getString("selectedType") ?: "All"
             val wordsLearnedJson = backStackEntry.arguments?.getString("wordsLearned")
             val wordsLearned = wordsLearnedJson?.let { convertJsonToWords(it) } ?: emptyList()
             ResultsScreen(viewModel, navController, timeSpent, selectedType, wordsLearned)
@@ -158,12 +167,88 @@ fun StartScreen(navController: NavHostController) {
         }
     }
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RowScope.TableCell(
+    text: String,
+    weight: Float,
+) {
+    Text(
+        text = text,
+        Modifier
+            .border(1.dp, Color.White)
+            .weight(weight)
+            .padding(8.dp)
+    )
+}
+@Composable
+fun WordManagementDialog(
+    word: DBType.Word,
+    onDelete: () -> Unit,
+    onUpdate: (DBType.Word) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var translationDescription by remember { mutableStateOf(word.description) }
+    var englishWord by remember { mutableStateOf(word.english) }
+    var russianWord by remember { mutableStateOf(word.russian) }
+    var enableButton by remember { mutableStateOf(false)}
+    fun validateInput(eng: String, rus: String): Boolean {
+        return eng.isNotEmpty() and rus.isNotEmpty()
+    }
+    // Dialog UI to manage the word (delete or update)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Manage Word") },
+        text = {
+            Column {
+                TextField(
+                    value = englishWord,
+                    onValueChange = { englishWord = it
+                        if(validateInput(englishWord, russianWord)){enableButton =true}},
+                    label = { Text("English") }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = russianWord,
+                    onValueChange = { russianWord = it
+                        if(validateInput(englishWord, russianWord)){enableButton =true}},
+                    label = { Text("Russian") }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = translationDescription,
+                    onValueChange = { translationDescription = it },
+                    label = { Text("Description") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                // Handle word update
+                onUpdate(
+                    word.copy(
+                        english = englishWord,
+                        russian = russianWord,
+                        description = translationDescription
+                    )
+                )
+            }) {
+                Text("Update")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDelete) {
+                Text("Delete")
+            }
+        }
+    )
+}
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
     val wordList by viewModel.words.observeAsState(emptyList())
     var showDialog by remember { mutableStateOf(false) }
+    var selectedWord by remember { mutableStateOf<DBType.Word?>(null) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -172,21 +257,22 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                     titleContentColor = colorScheme.primary,
                 ),
                 title = {
-                    Text("Top app bar")
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Words list", modifier = Modifier.padding(vertical = 10.dp))
+                        IconButton(onClick = {navController.navigate("start") {
+                            popUpTo("start") { inclusive = true }
+                        }}) {
+                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
+                        }
+                    }
                 }
+
             )
-        },
-        bottomBar = {
-            BottomAppBar(
-                containerColor = colorScheme.primaryContainer,
-                contentColor = colorScheme.primary,
-            ) {
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "Bottom app bar",
-                )
-            }
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
@@ -211,20 +297,67 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                itemsIndexed(wordList) { index, word ->
+                item {
+                    Row(Modifier.background(Color.Transparent)) {
+                        TableCell(text = "Original", weight = 1f)
+                        TableCell(text = "Translation", weight = 1f)
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = word.english)
-                        Text(text = word.russian)
                     }
+                }
+                itemsIndexed(wordList) { index, word ->
+                    var isExpanded by remember { mutableStateOf(false) }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = { isExpanded = !isExpanded },
+                                onLongClick = { selectedWord = word }
+                            ),
+                        horizontalAlignment = Alignment.Start,
+                        //verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            TableCell(text = word.english, weight = 1f)
+                            TableCell(text = word.russian, weight = 1f)
+                        }
+                        Crossfade(targetState = isExpanded, animationSpec = tween(durationMillis = 300)) { expanded ->
+                            if (expanded) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = "Info",
+                                        modifier = Modifier.padding(horizontal = 0.dp)
+                                    )
+                                    Text(
+                                        text = word.description,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(horizontal = 10.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    // Divider line between rows
+                    HorizontalDivider(thickness = 1.dp, color = Color.Gray)
                 }
             }
         }
     }
+
     if (showDialog) {
         AddWordDialog(
             viewModel = viewModel,
@@ -235,10 +368,27 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                     description = description,
                 )
                 viewModel.addWord(word)
+                showDialog = false
             },
             onDismiss = { showDialog = false }
         )
     }
+
+    selectedWord?.let { word ->
+        WordManagementDialog(
+            word = word,
+            onDelete = {
+                viewModel.deleteWord(word)
+                selectedWord = null
+            },
+            onUpdate = { updatedWord ->
+                viewModel.updateWord(updatedWord)
+                selectedWord = null
+            },
+            onDismiss = { selectedWord = null }
+        )
+    }
+
 }
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -307,8 +457,14 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                                 Text(
                                     text = number.toString(),
                                     modifier = Modifier
+                                        .clickable {
+                                            if (selectedType != "All" && selectedType != "") {
+                                                showDialog = true
+                                            } else {
+                                                selectedNumber = number
+                                            }
 
-                                        .clickable { selectedNumber = number }
+                                        }
                                         .padding(horizontal = 25.dp),
                                     //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
                                     color = if (selectedNumber == number) Color.Green else Color.Black,
@@ -334,7 +490,18 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                             Text(
                                 text = type,
                                 modifier = Modifier
-                                    .clickable { selectedType = type }
+                                    .clickable {
+                                        selectedType = type
+                                        if (selectedType != "All"){
+                                            if(selectedType == "Last 10"){
+                                                selectedNumber = 10
+                                            }
+                                            else {
+                                                selectedNumber = 25
+                                            }
+                                        }
+
+                                    }
                                     .padding(horizontal = 25.dp),
                                 //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
                                 color = if (selectedType == type) Color.Green else Color.Black,
@@ -369,24 +536,47 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                 Text(
                     text = "Start",
                     modifier = Modifier.clickable {
-                        navController.navigate("WordTrainingMenu/$selectedNumber/$selectedType")
+                        val mockList : List<Word> = emptyList()
+                        navController.navigate("WordTrainingMenu/$selectedNumber/$selectedType/$mockList")
                     }
                 )
             }
 
         }
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text("Alert") },
+                text = { Text("Number-specific mode is selected, unable to change the number") },
+                confirmButton = {
+                    Button(
+                        onClick = { showDialog = false }
+                    ) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
     }
+
 }
 @OptIn(ExperimentalAnimationApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wordCount: Int, type: String) {
+fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wordCount: Int, type: String, wordsRefresh: List<Word> ? = null) {
+    val words: List<Word>
     var time by remember { mutableStateOf(0)}
     var textfield by remember { mutableStateOf("Write your translation here")}
     var currentWordIndex: Int by remember { mutableIntStateOf(0) }
-    val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
-    val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) } .shuffled()
-    val words: List<Word> = shuffledWords.take(wordCount)
+    if (!wordsRefresh.isNullOrEmpty()){
+         words = wordsRefresh
+    }
+    else{
+        val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
+        val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) } .shuffled()
+         words = shuffledWords.take(wordCount)
+    }
+
 
     val onClick: () -> Unit = {
         if((currentWordIndex + 1) < words.size) {
@@ -408,8 +598,16 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                         ) {
                             Text(
                                 "Skip",
-                                modifier = Modifier.clickable(onClick = {onClick()
-                                    words[currentWordIndex].isCorrect = false}),
+                                modifier = Modifier.clickable(onClick = {
+                                    if (currentWordIndex + 1 == words.size){
+                                        words[currentWordIndex].isCorrect = false
+                                        navController.navigate("ResultsScreen/$time/$type/${convertWordsToJson(words)}")
+                                    }
+                                    else {
+                                        words[currentWordIndex].isCorrect = false
+                                        onClick()
+                                    }
+                                }),
                                 color = Color.Black
                             )
                         }
@@ -417,7 +615,7 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                 }
             ) {
                 Text(
-                    "0/${wordCount}",
+                    "${currentWordIndex + 1}/${words.size}",
                     fontSize = 50.sp,
                     modifier = Modifier.padding(26.dp),
                     color = colorScheme.primary
@@ -469,12 +667,11 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                             IconButton(
                                 onClick = {
                                     if (checkAnswer(textfield, words[currentWordIndex].russian)) {
+                                        if (currentWordIndex + 1 == words.size){
+                                            navController.navigate("ResultsScreen/$time/$type/${convertWordsToJson(words)}")
+                                        }
                                         textfield = ""
                                         onClick()
-                                        if (currentWordIndex + 1 == words.size){
-                                            navController.navigate("WordTrainingMenu/$time/$type")
-                                    }
-
                                     } else {
                                         words[currentWordIndex].isCorrect = false
                                     }
@@ -493,7 +690,8 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController? = null, timeSpent: Int ? = null, selectedType: String ? = null, learnedWords: List<Word>) {
+fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController, timeSpent: Int, selectedType: String, learnedWords: List<Word>) {
+    val wordCount: Int = learnedWords.size
     val words: String = buildString {
         learnedWords.forEachIndexed { index, word ->
             if (index < learnedWords.size - 2) {
@@ -519,7 +717,7 @@ fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController
         append("$percentage%")
     }
 
-
+    val wordsplaceholder: List<Word> = emptyList()
 
     Scaffold(
         bottomBar = {
@@ -533,16 +731,18 @@ fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController
                         .padding(8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = {navController.navigate("WordTrainingMenu/$wordCount/$selectedType/${convertWordsToJson(learnedWords)}")}) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = { navController.navigate("WordTrainingMenu/$wordCount/$selectedType/${convertWordsToJson(wordsplaceholder)}")}) {
                         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next")
                     }
                     IconButton(onClick = {}) {
                         Icon(Icons.Default.Warning, contentDescription = "Mistakes")
                     }
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = {navController.navigate("start") {
+                        popUpTo("start") { inclusive = true }
+                    }}) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
                     }
                 }
@@ -607,7 +807,7 @@ fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController
                             modifier = Modifier.padding(16.dp),
                             fontSize = 30.sp,
                             textAlign = TextAlign.Center,
-                            text = "words\n${learnedWords.size}",
+                            text = "words\n${wordCount}",
                         )
                         Text(
                             modifier = Modifier.padding(16.dp),
@@ -641,13 +841,6 @@ fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController
         }
     }
 }
-
-
-
-
-
-
-
 
 fun checkAnswer(userAnswer: String, correctAnswer: String): Boolean {
     return userAnswer.trim().equals(correctAnswer.trim(), ignoreCase = true)
@@ -797,10 +990,13 @@ fun PreviewWordListScreen() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostController) {
+    val shape = RoundedCornerShape(2.dp)
     var showDialog by remember { mutableStateOf(false) }
+    var selectedWord by remember { mutableStateOf<DBType.Word?>(null) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -848,20 +1044,66 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                itemsIndexed(wordList) { index, word ->
+                item {
+                    Row(Modifier.background(Color.Transparent)) {
+                        TableCell(text = "Original", weight = 1f)
+                        TableCell(text = "Translation", weight = 1f)
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = word.english)
-                        Text(text = word.russian)
                     }
+                }
+                itemsIndexed(wordList) { index, word ->
+                    var isExpanded by remember { mutableStateOf(false) }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = { isExpanded = !isExpanded },
+                                onLongClick = { selectedWord = word }
+                            ),
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .clip(shape),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            TableCell(text = word.english, weight = 1f)
+                            TableCell(text = word.russian, weight = 1f)
+                        }
+                        if (isExpanded) {
+                            Row(
+                                modifier = Modifier
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = "Info",
+                                    modifier = Modifier.padding(horizontal = 0.dp)
+                                )
+                                Text(
+                                    text = word.description,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(horizontal = 10.dp)
+                                )
+                            }
+                        }
+                    }
+                    // Divider line between rows
+                    HorizontalDivider(thickness = 1.dp, color = Color.Gray)
                 }
             }
         }
     }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1072,5 +1314,5 @@ fun ResultsPreview(){
         Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
         Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true)
     )
-    ResultsScreen(null, null, timeSpent , selectedType, sampleWords)
+    ResultsScreen(null, navController = rememberNavController(), timeSpent , selectedType, sampleWords)
 }

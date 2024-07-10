@@ -51,6 +51,14 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
             Log.d("com.example.sigmaenglish.ViewModel", "Word deleted successfully")
         }
     }
+    fun updateWord(word: DBType.Word) {
+        Log.d("com.example.sigmaenglish.ViewModel", "Updating word: ${word.english}")
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateWord(word)
+            Log.d("com.example.sigmaenglish.ViewModel", "Word updated successfully")
+        }
+    }
+
 
     fun updateText(newTextOrg: String, newTextTrans: String, newTextDesc: String) {
         Log.d("com.example.sigmaenglish.ViewModel", "Updating text: $newTextOrg")

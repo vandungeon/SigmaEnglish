@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Query
+import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
@@ -13,6 +14,8 @@ interface DataAccessObjects {
     suspend fun insertWord(task: DBType.Word)
     @Delete
     suspend fun deleteWord(task: DBType.Word)
+    @Update
+    suspend fun updateWord(word: DBType.Word)
 
     @Query(" SELECT * FROM Word")
     fun readAllData(): LiveData<List<DBType.Word>>
