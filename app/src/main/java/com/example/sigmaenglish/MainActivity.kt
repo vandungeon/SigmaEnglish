@@ -147,22 +147,47 @@ fun NavigationComponent(viewModel: ViewModel) {
         }
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CustomTextFieldColors(): TextFieldColors {
+    return TextFieldDefaults.textFieldColors(
+        focusedTextColor =  Color.Black,
+        disabledTextColor = Color.Black,
+        unfocusedPlaceholderColor = colorScheme.secondary,
+        focusedPlaceholderColor = colorScheme.secondary
+
+    )
+}
+@Composable
+fun CustomButtonColors(): ButtonColors {
+    return ButtonDefaults.buttonColors(
+        containerColor = colorScheme.tertiary,
+        contentColor = colorScheme.secondary,
+        disabledContainerColor = colorScheme.tertiary.copy(alpha = 0.3f),
+        disabledContentColor = colorScheme.onTertiary.copy(alpha = 0.3f)
+    )
+}
 @Composable
 fun StartScreen(navController: NavHostController) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+    SigmaEnglishTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colorScheme.primary),
+            contentAlignment = Alignment.Center,
+
         ) {
-            Text("Start Screen", style = MaterialTheme.typography.headlineMedium)
-            Button(onClick = { navController.navigate("WordListScreen") }) {
-                Text("Words List")
-            }
-            Button(onClick = { navController.navigate("trainingMenu") }) {
-                Text("Training")
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("Start Screen", style = MaterialTheme.typography.headlineMedium, color = colorScheme.secondary)
+                Button(onClick = { navController.navigate("WordListScreen") }, colors = CustomButtonColors()) {
+                    Text("Words List")
+                }
+                Button(onClick = { navController.navigate("trainingMenu") }, colors = CustomButtonColors()) {
+                    Text("Training")
+                }
             }
         }
     }
@@ -208,6 +233,7 @@ fun WordManagementDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
+                    colors = CustomTextFieldColors(),
                     value = russianWord,
                     onValueChange = { russianWord = it
                         if(validateInput(englishWord, russianWord)){enableButton =true}},
@@ -253,8 +279,8 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.primaryContainer,
-                    titleContentColor = colorScheme.primary,
+                    containerColor = colorScheme.secondary,
+                    titleContentColor = Color.Black,
                 ),
                 title = {
                     Row(
@@ -276,6 +302,8 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
+                contentColor = colorScheme.secondary,
+                containerColor = colorScheme.tertiary,
                 text = { Text("Add Word") },
                 icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
                 onClick = { showDialog = true },
@@ -390,6 +418,125 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
     }
 
 }
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostController) {
+    var showDialog by remember { mutableStateOf(false) }
+    var selectedWord by remember { mutableStateOf<DBType.Word?>(null) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = colorScheme.secondary,
+                    titleContentColor = Color.Black,
+                ),
+                title = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Words list", modifier = Modifier.padding(vertical = 10.dp))
+                        IconButton(onClick = {navController.navigate("start") {
+                            popUpTo("start") { inclusive = true }
+                        }}) {
+                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
+                        }
+                    }
+                }
+
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                contentColor = colorScheme.secondary,
+                containerColor = colorScheme.tertiary,
+                text = { Text("Add Word") },
+                icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
+                onClick = { showDialog = true },
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures { change, dragAmount ->
+                        if (dragAmount < -50) { // Swipe right to left
+                            navController.navigate("start") {
+                                popUpTo("start") { inclusive = true }
+                            }
+                        }
+                    }
+                },
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                item {
+                    Row(Modifier.background(Color.Transparent)) {
+                        TableCell(text = "Original", weight = 1f)
+                        TableCell(text = "Translation", weight = 1f)
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                    }
+                }
+                itemsIndexed(wordList) { index, word ->
+                    var isExpanded by remember { mutableStateOf(false) }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = { isExpanded = !isExpanded },
+                                onLongClick = { selectedWord = word }
+                            ),
+                        horizontalAlignment = Alignment.Start,
+                        //verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            TableCell(text = word.english, weight = 1f)
+                            TableCell(text = word.russian, weight = 1f)
+                        }
+                        Crossfade(targetState = isExpanded, animationSpec = tween(durationMillis = 300)) { expanded ->
+                            if (expanded) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = "Info",
+                                        modifier = Modifier.padding(horizontal = 0.dp)
+                                    )
+                                    Text(
+                                        text = word.description,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(horizontal = 10.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    // Divider line between rows
+                    HorizontalDivider(thickness = 1.dp, color = Color.Gray)
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
@@ -435,8 +582,8 @@ fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
 @Composable
 fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
     var showDialog by remember { mutableStateOf(false) }
-    var selectedNumber by remember { mutableIntStateOf(0) }
-    var selectedType by remember { mutableStateOf("") }
+    var selectedNumber by remember { mutableIntStateOf(10) }
+    var selectedType by remember { mutableStateOf("All") }
 
     val numbers = listOf(10, 25, 50, 100) // List of numbers to display
     val types = listOf("Last 10", "Last 25", "All") // List of types to display
@@ -444,8 +591,8 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.primaryContainer,
-                    titleContentColor = colorScheme.primary,
+                    containerColor = colorScheme.tertiary,
+                    titleContentColor = colorScheme.secondary,
                 ),
                 title = {
                     Box(
@@ -467,7 +614,7 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                                         }
                                         .padding(horizontal = 25.dp),
                                     //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                                    color = if (selectedNumber == number) Color.Green else Color.Black,
+                                    color = if (selectedNumber == number) colorScheme.secondary else Color.Black,
                                 )
                             }
                         }
@@ -477,8 +624,8 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
         },
         bottomBar = {
             BottomAppBar(
-                containerColor = colorScheme.primaryContainer,
-                contentColor = colorScheme.primary,
+                containerColor = colorScheme.tertiary,
+                contentColor = colorScheme.secondary,
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -492,11 +639,10 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                                 modifier = Modifier
                                     .clickable {
                                         selectedType = type
-                                        if (selectedType != "All"){
-                                            if(selectedType == "Last 10"){
+                                        if (selectedType != "All") {
+                                            if (selectedType == "Last 10") {
                                                 selectedNumber = 10
-                                            }
-                                            else {
+                                            } else {
                                                 selectedNumber = 25
                                             }
                                         }
@@ -504,7 +650,7 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                                     }
                                     .padding(horizontal = 25.dp),
                                 //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                                color = if (selectedType == type) Color.Green else Color.Black,
+                                color = if (selectedType == type) colorScheme.secondary else Color.Black,
                             )
                         }
                     }
@@ -588,7 +734,8 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
             Scaffold(
                 bottomBar = {
                     BottomAppBar(
-                        contentColor = Color.LightGray, // Adjust as per your color scheme
+                        containerColor = colorScheme.tertiary,
+                        contentColor = colorScheme.secondary
                     ) {
                         Box(
                             modifier = Modifier
@@ -618,7 +765,7 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                     "${currentWordIndex + 1}/${words.size}",
                     fontSize = 50.sp,
                     modifier = Modifier.padding(26.dp),
-                    color = colorScheme.primary
+                    color = colorScheme.secondary
                 )
                 Column(
                     modifier = Modifier
@@ -637,7 +784,7 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                                 slideOutHorizontally { width -> -width } + fadeOut())
                         }
                     ) { index ->
-                        Text(words[index].english, fontSize = 50.sp, textAlign = TextAlign.Center)
+                        Text(words[index].english, fontSize = 50.sp, textAlign = TextAlign.Center, color = colorScheme.secondary)
                     }
                     Surface(
                         shape = MaterialTheme.shapes.medium,
@@ -677,7 +824,7 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                                     }
                                 }
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = colorScheme.secondary)
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -860,6 +1007,7 @@ fun AddWordDialog(
         return eng.isNotEmpty() and rus.isNotEmpty()
     }
     AlertDialog(
+        containerColor = colorScheme.primary,
         onDismissRequest = onDismiss,
         title = { Text("Add New Word") },
         text = {
@@ -872,6 +1020,7 @@ fun AddWordDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
+                    colors = CustomTextFieldColors(),
                     value = russianWord,
                     onValueChange = { russianWord = it
                                     if(validateInput(englishWord, russianWord)){enableButton =true}},
@@ -887,6 +1036,7 @@ fun AddWordDialog(
         },
         confirmButton = {
             Button(
+                colors = CustomButtonColors(),
                 enabled = enableButton,
                 onClick = {
                         if(translationDescription.isNotEmpty()){
@@ -904,6 +1054,7 @@ fun AddWordDialog(
         },
         dismissButton = {
             Button(
+                colors = CustomButtonColors(),
                 onClick = onDismiss
             ) {
                 Text("Cancel")
@@ -990,317 +1141,7 @@ fun PreviewWordListScreen() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-@Composable
-fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostController) {
-    val shape = RoundedCornerShape(2.dp)
-    var showDialog by remember { mutableStateOf(false) }
-    var selectedWord by remember { mutableStateOf<DBType.Word?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.primaryContainer,
-                    titleContentColor = colorScheme.primary,
-                ),
-                title = {
-                    Text("Top app bar")
-                }
-            )
-        },
-        bottomBar = {
-            BottomAppBar(
-                containerColor = colorScheme.primaryContainer,
-                contentColor = colorScheme.primary,
-            ) {
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "Bottom app bar",
-                )
-            }
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                text = { Text("Add Word") },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
-                onClick = { showDialog = true },
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures { change, dragAmount ->
-                        if (dragAmount < -50) { // Swipe right to left
-                            navController.navigate("start") {
-                                popUpTo("start") { inclusive = true }
-                            }
-                        }
-                    }
-                },
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                item {
-                    Row(Modifier.background(Color.Transparent)) {
-                        TableCell(text = "Original", weight = 1f)
-                        TableCell(text = "Translation", weight = 1f)
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                    }
-                }
-                itemsIndexed(wordList) { index, word ->
-                    var isExpanded by remember { mutableStateOf(false) }
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = { isExpanded = !isExpanded },
-                                onLongClick = { selectedWord = word }
-                            ),
-                        horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .clip(shape),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            TableCell(text = word.english, weight = 1f)
-                            TableCell(text = word.russian, weight = 1f)
-                        }
-                        if (isExpanded) {
-                            Row(
-                                modifier = Modifier
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = "Info",
-                                    modifier = Modifier.padding(horizontal = 0.dp)
-                                )
-                                Text(
-                                    text = word.description,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(horizontal = 10.dp)
-                                )
-                            }
-                        }
-                    }
-                    // Divider line between rows
-                    HorizontalDivider(thickness = 1.dp, color = Color.Gray)
-                }
-            }
-        }
-    }
-
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true)
-@Composable
-fun PreviewSettings() {
-    SigmaEnglishTheme {
-        var showDialog by remember { mutableStateOf(false) }
-        var selectedNumber by remember { mutableStateOf(0) }
-        var selectedType by remember { mutableStateOf("") }
-
-        val numbers = listOf(10, 25, 50, 100) // List of numbers to display
-        val types = listOf("Last 10", "Last 25", "All") // List of types to display
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = colorScheme.primaryContainer,
-                        titleContentColor = colorScheme.primary,
-                    ),
-                    title = {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row {
-                                numbers.forEach { number ->
-                                    Text(
-                                        text = number.toString(),
-                                        modifier = Modifier
-
-                                            .clickable { selectedNumber = number }
-                                            .padding(horizontal = 25.dp),
-                                        //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                                        color = if (selectedNumber == number) Color.Green else Color.Black,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                )
-            },
-            bottomBar = {
-                BottomAppBar(
-                    containerColor = colorScheme.primaryContainer,
-                    contentColor = colorScheme.primary,
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-
-                        Row {
-                            types.forEach { type ->
-                                Text(
-                                    text = type,
-                                    modifier = Modifier
-                                        .clickable { selectedType = type }
-                                        .padding(horizontal = 25.dp),
-                                    //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                                    color = if (selectedType == type) Color.Green else Color.Black,
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .pointerInput(Unit) {
-                        detectHorizontalDragGestures { change, dragAmount ->
-                            if (dragAmount < -50) { // Swipe right to left
-                            }
-                        }
-                    },
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Start",
-                        modifier = Modifier
-                            .clickable { }
-                            .padding(horizontal = 25.dp),
-
-                        color = Color.Black,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
-@Preview
-@Composable
-fun WordTrainingMenuPreview() {
-    var isExpanded by remember { mutableStateOf(false) }
-    var text by remember { mutableStateOf("Description") }
-    var textfield by remember { mutableStateOf("Write your translation here")}
-    var currentWordIndex by remember { mutableStateOf(0) }
-    val words = listOf("Word1", "Word2", "Word3") // Sample words for preview, надо будет заменить на оbserve as из бд
-    val onClick: () -> Unit = {
-        currentWordIndex++
-    }
-    SigmaEnglishTheme {
-        Scaffold(
-            bottomBar = {
-                BottomAppBar(
-                    contentColor = Color.LightGray, // Adjust as per your color scheme
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp), // Adjust height as needed
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Skip",
-                            modifier = Modifier.clickable(onClick = onClick),
-                            color = Color.Black
-                        )
-                    }
-                }
-            }
-        ) {
-            Text(
-                "0/10",
-                fontSize = 50.sp,
-                modifier = Modifier.padding(26.dp),
-                color = colorScheme.primary
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-                    .padding(vertical = 250.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                AnimatedContent(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    targetState = currentWordIndex,
-                    transitionSpec = {
-                        (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
-                            slideOutHorizontally { width -> -width } + fadeOut())
-                    }
-                ) { index ->
-                    Text(words[index], fontSize = 50.sp, textAlign = TextAlign.Center)
-                }
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    shadowElevation = 1.dp,
-                    color = /*surfaceColor*/MaterialTheme.colorScheme.surface,
-                    modifier = Modifier
-                        .animateContentSize()
-                        .padding(all = 16.dp)
-                )
-                {
-                    Hint(
-                        initialText = "Description",
-                        expandedText = "This is a test description",
-                        icon = Icons.Default.Info
-                    )
-                }
-                HorizontalDivider(modifier = Modifier
-                    .padding(horizontal = 50.dp)
-                    .padding(vertical = 20.dp))
-                TextField(
-                    value = textfield,
-                    onValueChange = { textfield = it },
-                    placeholder = { Text("Write your translation here") },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = {
-                                var isRight = checkAnswer(textfield, "")
-                                textfield = ""
-                            }
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-        }
-    }
-}
 
 @Composable
 @Preview
