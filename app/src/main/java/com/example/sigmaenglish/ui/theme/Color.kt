@@ -10,6 +10,7 @@ val DarkGrey = Color(0xFF141414)
 val BananaYellow = Color(0xFFFFC107)
 val accentGrey = Color(0xFF464646)
 val darkYellow = Color(0xA4FFC107)
+val lightgray = Color(0xA4BDBBB6)
 
 val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)

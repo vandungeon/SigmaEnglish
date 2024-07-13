@@ -2,9 +2,12 @@ package com.example.sigmaenglish
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.graphics.Rect
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.provider.UserDictionary.Words
+import android.util.Log
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,9 +17,15 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -46,6 +55,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialogDefaults.containerColor
 import androidx.compose.material3.BottomSheetDefaults.ContainerColor
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
@@ -53,11 +63,18 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -79,8 +96,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
+import com.example.sigmaenglish.ui.theme.lightgray
 import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.reflect.TypeToken
 import com.google.gson.Gson
+import kotlin.math.roundToInt
 
 data class Word(
     val english: String,
@@ -706,32 +725,84 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
     }
 
 }
-@OptIn(ExperimentalAnimationApi::class)
+
+@Composable
+fun rememberKeyboardVisibilityObserver(): State<Boolean> {
+    val isKeyboardVisible = remember { mutableStateOf(false) }
+    val rootView = LocalView.current
+    DisposableEffect(rootView) {
+        val listener = ViewTreeObserver.OnGlobalLayoutListener {
+            val rect = Rect()
+            rootView.getWindowVisibleDisplayFrame(rect)
+            val screenHeight = rootView.height
+            val keypadHeight = screenHeight - rect.bottom
+            isKeyboardVisible.value = keypadHeight > screenHeight * 0.15
+        }
+        rootView.viewTreeObserver.addOnGlobalLayoutListener(listener)
+        onDispose {
+            rootView.viewTreeObserver.removeOnGlobalLayoutListener(listener)
+        }
+    }
+    return isKeyboardVisible
+}
+
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wordCount: Int, type: String, wordsRefresh: List<Word> ? = null) {
-    val words: List<Word>
-    var time by remember { mutableStateOf(0)}
-    var textfield by remember { mutableStateOf("Write your translation here")}
+fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wordCount: Int, type: String, wordsRefresh: List<Word>? = null
+) {
+
+    var time by remember { mutableStateOf(0) }
     var currentWordIndex: Int by remember { mutableIntStateOf(0) }
-    if (!wordsRefresh.isNullOrEmpty()){
-         words = wordsRefresh
-    }
-    else{
-        val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
-        val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) } .shuffled()
-         words = shuffledWords.take(wordCount)
-    }
+    val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
 
-
+    val words by remember {
+        mutableStateOf(
+            if (!wordsRefresh.isNullOrEmpty()) {
+                wordsRefresh
+            } else {
+                val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) }.shuffled()
+                shuffledWords.take(wordCount)
+            }
+        )
+    }
+    Log.d("WordTraining", "Words initialized ${words}")
     val onClick: () -> Unit = {
-        if((currentWordIndex + 1) < words.size) {
+        if ((currentWordIndex + 1) < words.size) {
             currentWordIndex++
+        }
+    }
+
+    var isAlertDialogEnabled by remember { mutableStateOf(false) }
+
+    var textfield by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+    val isKeyboardVisible = rememberKeyboardVisibilityObserver()
+    val focusManager = LocalFocusManager.current
+
+
+    val shake = remember { Animatable(0f) }
+    var trigger by remember { mutableStateOf(0L) }
+    LaunchedEffect(trigger) {
+        if (trigger != 0L) {
+            for (i in 0..10) {
+                when (i % 2) {
+                    0 -> shake.animateTo(5f, spring(stiffness = 100_000f))
+                    else -> shake.animateTo(-5f, spring(stiffness = 100_000f))
+                }
+            }
+            shake.animateTo(0f)
         }
     }
     if (words.isNotEmpty()) {
         SigmaEnglishTheme {
             Scaffold(
+                modifier = Modifier.pointerInput(Unit) {
+                    detectHorizontalDragGestures { change, dragAmount ->
+                        if (dragAmount < -50) { // Swipe right to left
+                            isAlertDialogEnabled = true
+                        }
+                    }
+                },
                 bottomBar = {
                     BottomAppBar(
                         containerColor = colorScheme.tertiary,
@@ -746,21 +817,25 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                             Text(
                                 "Skip",
                                 modifier = Modifier.clickable(onClick = {
-                                    if (currentWordIndex + 1 == words.size){
+                                    if (currentWordIndex + 1 == words.size) {
                                         words[currentWordIndex].isCorrect = false
                                         navController.navigate("ResultsScreen/$time/$type/${convertWordsToJson(words)}")
-                                    }
-                                    else {
+                                    } else {
                                         words[currentWordIndex].isCorrect = false
                                         onClick()
                                     }
                                 }),
-                                color = Color.Black
+                                color = colorScheme.secondary
                             )
                         }
                     }
                 }
             ) {
+                LaunchedEffect(isKeyboardVisible.value) {
+                    if (!isKeyboardVisible.value) {
+                        focusManager.clearFocus()
+                    }
+                }
                 Text(
                     "${currentWordIndex + 1}/${words.size}",
                     fontSize = 50.sp,
@@ -770,7 +845,7 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp)
                         .padding(vertical = 250.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -781,45 +856,45 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                         targetState = currentWordIndex,
                         transitionSpec = {
                             (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
-                                slideOutHorizontally { width -> -width } + fadeOut())
+                                slideOutHorizontally { width -> -width } + fadeOut()
+                            )
                         }
+
                     ) { index ->
-                        Text(words[index].english, fontSize = 50.sp, textAlign = TextAlign.Center, color = colorScheme.secondary)
+                        Text(words[index].english, fontSize = 50.sp, textAlign = TextAlign.Center, color = colorScheme.secondary,
+                            modifier = Modifier.offset { IntOffset(shake.value.roundToInt(), y = 0) }
+                        )
                     }
                     Surface(
                         shape = MaterialTheme.shapes.medium,
                         shadowElevation = 1.dp,
-                        color = /*surfaceColor*/MaterialTheme.colorScheme.surface,
+                        color = MaterialTheme.colorScheme.surface,
                         modifier = Modifier
                             .animateContentSize()
                             .padding(all = 16.dp)
-                    )
-                    {
+                    ) {
                         Hint(
                             initialText = "Description",
                             expandedText = words[currentWordIndex].description,
                             icon = Icons.Default.Info
                         )
                     }
-                    HorizontalDivider(
-                        modifier = Modifier
-                            .padding(horizontal = 50.dp)
-                            .padding(vertical = 20.dp)
-                    )
                     TextField(
+
                         value = textfield,
                         onValueChange = { textfield = it },
-                        placeholder = { Text("Write your translation here") },
+                        label = { Text("Write your translation here", color = Color.White) },
                         trailingIcon = {
                             IconButton(
                                 onClick = {
                                     if (checkAnswer(textfield, words[currentWordIndex].russian)) {
-                                        if (currentWordIndex + 1 == words.size){
+                                        if (currentWordIndex + 1 == words.size) {
                                             navController.navigate("ResultsScreen/$time/$type/${convertWordsToJson(words)}")
                                         }
                                         textfield = ""
                                         onClick()
                                     } else {
+                                         trigger = System.currentTimeMillis()
                                         words[currentWordIndex].isCorrect = false
                                     }
                                 }
@@ -827,14 +902,55 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = colorScheme.secondary)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        colors = TextFieldDefaults.colors(
+                            cursorColor = Color.White // Change cursor color to white
+                        )
                     )
                 }
-
+            }
+            if (isAlertDialogEnabled) {
+                AlertDialog(
+                    shape = RoundedCornerShape(16.dp),
+                    tonalElevation = 8.dp,
+                    modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+                    containerColor = colorScheme.tertiary,
+                    onDismissRequest = { isAlertDialogEnabled = false },
+                    title = { Text("Manage Word") },
+                    text = {
+                        Text("Are you sure you wanna close this window? Your progress will be lost.")
+                    },
+                    confirmButton = {
+                        Button(
+                            colors = CustomButtonColors(),
+                            onClick = {
+                                navController.navigate("start") {
+                                    popUpTo("start") { inclusive = true }
+                                }
+                            }) {
+                            Text("Yes")
+                        }
+                    },
+                    dismissButton = {
+                        Button(
+                            colors = CustomButtonColors(),
+                            onClick = {
+                                isAlertDialogEnabled = false
+                            }) {
+                            Text("No")
+                        }
+                    }
+                )
             }
         }
     }
 }
+
+
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController, timeSpent: Int, selectedType: String, learnedWords: List<Word>) {
@@ -1063,9 +1179,9 @@ fun AddWordDialog(
     )
 }
 
+
 @Composable
 fun Hint(initialText: String, expandedText: String, icon: ImageVector) {
-    // State to track expanded state and current text
     val (isExpanded, setExpanded) = remember { mutableStateOf(false) }
     val (displayText, setDisplayText) = remember { mutableStateOf(initialText) }
 
@@ -1075,21 +1191,32 @@ fun Hint(initialText: String, expandedText: String, icon: ImageVector) {
         setDisplayText(if (isExpanded) initialText else expandedText)
     }
 
-    Row(
+    Card(
+        shape = RoundedCornerShape(16.dp), // Set the round shape here
+        colors = CardDefaults.cardColors(lightgray), // Set the container color here
+
         modifier = Modifier
             .clickable(onClick = onClick)
             .padding(all = 8.dp)
+            .border(BorderStroke(2.dp, colorScheme.secondary),shape = RoundedCornerShape(16.dp),),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = "Info",
-            modifier = Modifier.padding(horizontal = 0.dp)
-        )
-        Text(
-            text = displayText,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(horizontal = 10.dp)
-        )
+        Row(
+            modifier = Modifier
+                .padding(all = 8.dp) // Padding inside the Card
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = "Info",
+                modifier = Modifier.padding(horizontal = 0.dp),
+                tint = Color.White
+            )
+            Text(
+                color = Color.White,
+                text = displayText,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 10.dp)
+            )
+        }
     }
 }
 @Composable
@@ -1141,8 +1268,6 @@ fun PreviewWordListScreen() {
     }
 }
 
-
-
 @Composable
 @Preview
 fun ResultsPreview(){
@@ -1157,3 +1282,5 @@ fun ResultsPreview(){
     )
     ResultsScreen(null, navController = rememberNavController(), timeSpent , selectedType, sampleWords)
 }
+
+
