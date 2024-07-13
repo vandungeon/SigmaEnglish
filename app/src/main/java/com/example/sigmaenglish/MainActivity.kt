@@ -99,6 +99,7 @@ import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
 import com.example.sigmaenglish.ui.theme.lightgray
 import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.reflect.TypeToken
 import com.google.gson.Gson
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 data class Word(
@@ -748,24 +749,30 @@ fun rememberKeyboardVisibilityObserver(): State<Boolean> {
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wordCount: Int, type: String, wordsRefresh: List<Word>? = null
+fun WordTrainingMenu(
+    viewModel: ViewModel,
+    navController: NavHostController,
+    wordCount: Int,
+    type: String,
+    wordsRefresh: List<Word>? = null
 ) {
-
     var time by remember { mutableStateOf(0) }
     var currentWordIndex: Int by remember { mutableIntStateOf(0) }
     val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
 
-    val words by remember {
-        mutableStateOf(
-            if (!wordsRefresh.isNullOrEmpty()) {
-                wordsRefresh
-            } else {
-                val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) }.shuffled()
-                shuffledWords.take(wordCount)
-            }
-        )
+    var words by remember { mutableStateOf(emptyList<Word>()) }
+
+    LaunchedEffect(wordsRefresh, wordList) {
+        words = if (!wordsRefresh.isNullOrEmpty()) {
+            wordsRefresh
+        } else {
+            val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) }.shuffled()
+            shuffledWords.take(wordCount)
+        }
+        Log.d("WordTraining", "Words initialized $words")
     }
-    Log.d("WordTraining", "Words initialized ${words}")
+
+    Log.d("WordTraining", "Words initialized $words")
     val onClick: () -> Unit = {
         if ((currentWordIndex + 1) < words.size) {
             currentWordIndex++
@@ -778,7 +785,6 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
     val focusRequester = remember { FocusRequester() }
     val isKeyboardVisible = rememberKeyboardVisibilityObserver()
     val focusManager = LocalFocusManager.current
-
 
     val shake = remember { Animatable(0f) }
     var trigger by remember { mutableStateOf(0L) }
@@ -793,7 +799,16 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
             shake.animateTo(0f)
         }
     }
-    if (words.isNotEmpty()) {
+
+    if (words.isEmpty()) {
+        Log.d("Loading screen", "${words}")
+        CircularProgressIndicator(
+            modifier = Modifier
+                .fillMaxSize()
+                .wrapContentSize(Alignment.Center)
+        )
+
+    } else {
         SigmaEnglishTheme {
             Scaffold(
                 modifier = Modifier.pointerInput(Unit) {
@@ -880,7 +895,6 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                         )
                     }
                     TextField(
-
                         value = textfield,
                         onValueChange = { textfield = it },
                         label = { Text("Write your translation here", color = Color.White) },
@@ -894,7 +908,7 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
                                         textfield = ""
                                         onClick()
                                     } else {
-                                         trigger = System.currentTimeMillis()
+                                        trigger = System.currentTimeMillis()
                                         words[currentWordIndex].isCorrect = false
                                     }
                                 }
@@ -951,16 +965,17 @@ fun WordTrainingMenu(viewModel: ViewModel, navController: NavHostController, wor
 
 
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController, timeSpent: Int, selectedType: String, learnedWords: List<Word>) {
     val wordCount: Int = learnedWords.size
     val words: String = buildString {
         learnedWords.forEachIndexed { index, word ->
-            if (index < learnedWords.size - 2) {
+            if (index < learnedWords.size - 1) {
                 append("${word.english} - ${word.russian}, ")
             }
-            else if (index < learnedWords.size - 1) {
+            else if (index < learnedWords.size ) {
                 append("${word.english} - ${word.russian}")
             }
         }
