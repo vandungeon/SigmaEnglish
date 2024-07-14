@@ -222,9 +222,25 @@ fun RowScope.TableCell(
         Modifier
             .border(1.dp, Color.White)
             .weight(weight)
-            .padding(8.dp)
+            .padding(8.dp),
     )
 }
+@Composable
+fun RowScope.TableCellHeader(
+    text: String,
+    weight: Float,
+) {
+    Text(
+        text = text,
+        Modifier
+            .border(1.dp, Color.White)
+            .weight(weight)
+            .padding(8.dp),
+        textAlign = TextAlign.Center
+    )
+}
+
+
 @Composable
 fun WordManagementDialog(
     word: DBType.Word,
@@ -346,17 +362,11 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         ) {
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 item {
-                    Row(Modifier.background(Color.Transparent)) {
-                        TableCell(text = "Original", weight = 1f)
-                        TableCell(text = "Translation", weight = 1f)
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                    Row(modifier = Modifier
+                        .background(colorScheme.tertiary)
+                        .fillMaxWidth(1f), horizontalArrangement = Arrangement.SpaceBetween) {
+                        TableCellHeader(text = "Original", weight = 1f)
+                        TableCellHeader(text = "Translation", weight = 1f)
                     }
                 }
                 itemsIndexed(wordList) { index, word ->
@@ -756,12 +766,21 @@ fun WordTrainingMenu(
     type: String,
     wordsRefresh: List<Word>? = null
 ) {
-    var time by remember { mutableStateOf(0) }
+    val (isHintExpanded, setHintExpanded) = remember { mutableStateOf(false) }
     var currentWordIndex: Int by remember { mutableIntStateOf(0) }
     val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
 
     var words by remember { mutableStateOf(emptyList<Word>()) }
 
+    var startTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    var elapsedTime by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            elapsedTime = System.currentTimeMillis() - startTime
+            delay(1000L)
+        }
+    }
     LaunchedEffect(wordsRefresh, wordList) {
         words = if (!wordsRefresh.isNullOrEmpty()) {
             wordsRefresh
@@ -834,8 +853,9 @@ fun WordTrainingMenu(
                                 modifier = Modifier.clickable(onClick = {
                                     if (currentWordIndex + 1 == words.size) {
                                         words[currentWordIndex].isCorrect = false
-                                        navController.navigate("ResultsScreen/$time/$type/${convertWordsToJson(words)}")
+                                        navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}")
                                     } else {
+                                        setHintExpanded(false)
                                         words[currentWordIndex].isCorrect = false
                                         onClick()
                                     }
@@ -891,7 +911,9 @@ fun WordTrainingMenu(
                         Hint(
                             initialText = "Description",
                             expandedText = words[currentWordIndex].description,
-                            icon = Icons.Default.Info
+                            icon = Icons.Default.Info,
+                            isExpanded = isHintExpanded,
+                            onExpandChange = setHintExpanded
                         )
                     }
                     TextField(
@@ -902,8 +924,9 @@ fun WordTrainingMenu(
                             IconButton(
                                 onClick = {
                                     if (checkAnswer(textfield, words[currentWordIndex].russian)) {
+                                        setHintExpanded(false)
                                         if (currentWordIndex + 1 == words.size) {
-                                            navController.navigate("ResultsScreen/$time/$type/${convertWordsToJson(words)}")
+                                            navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}")
                                         }
                                         textfield = ""
                                         onClick()
@@ -1196,24 +1219,22 @@ fun AddWordDialog(
 
 
 @Composable
-fun Hint(initialText: String, expandedText: String, icon: ImageVector) {
-    val (isExpanded, setExpanded) = remember { mutableStateOf(false) }
-    val (displayText, setDisplayText) = remember { mutableStateOf(initialText) }
-
-    // Toggle expanded state and change text accordingly
-    val onClick: () -> Unit = {
-        setExpanded(!isExpanded)
-        setDisplayText(if (isExpanded) initialText else expandedText)
-    }
+fun Hint(
+    initialText: String,
+    expandedText: String,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onExpandChange: (Boolean) -> Unit
+) {
+    val displayText = if (isExpanded) expandedText else initialText
 
     Card(
         shape = RoundedCornerShape(16.dp), // Set the round shape here
         colors = CardDefaults.cardColors(lightgray), // Set the container color here
-
         modifier = Modifier
-            .clickable(onClick = onClick)
+            .clickable(onClick = { onExpandChange(!isExpanded) })
             .padding(all = 8.dp)
-            .border(BorderStroke(2.dp, colorScheme.secondary),shape = RoundedCornerShape(16.dp),),
+            .border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
     ) {
         Row(
             modifier = Modifier
@@ -1234,6 +1255,7 @@ fun Hint(initialText: String, expandedText: String, icon: ImageVector) {
         }
     }
 }
+
 @Composable
 fun ModeCard(mode: String, selectedScreen: String, onSelect: () -> Unit) {
     Card(
