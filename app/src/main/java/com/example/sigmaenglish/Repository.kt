@@ -17,4 +17,35 @@ class Repository (private val dataAccessObjects: DataAccessObjects){
     suspend fun updateWord(word: DBType.Word) {
         dataAccessObjects.updateWord(word)
     }
+
+
+    val readAllDataFailed: LiveData<List<DBType.WordsFailed>> = dataAccessObjects.readAllDataFailed()
+
+    suspend fun insertWordFailed(word: DBType.WordsFailed){
+        dataAccessObjects.insertWordFailed(word)
+    }
+
+    suspend fun deleteWordFailed(word: DBType.WordsFailed) {
+        dataAccessObjects.deleteWordFailed(word)
+    }
+
+    suspend fun decrementTraining(word: String) {
+        dataAccessObjects.decrementTimesPractised(word)
+    }
+    suspend fun incrementTraining(word: String) {
+        dataAccessObjects.incrementTimesPractised(word)
+    }
+
+    suspend fun updateWordFailed(word: DBType.WordsFailed) {
+        dataAccessObjects.updateWordFailed(word)
+    }
+    suspend fun isWordInFailedDatabase(word: String): Boolean {
+        return dataAccessObjects.isWordInFailedDatabase(word)
+    }
+
+    suspend fun checkForDeletion() {
+        dataAccessObjects.checkForCompletedFails()
+    }
+
+
 }

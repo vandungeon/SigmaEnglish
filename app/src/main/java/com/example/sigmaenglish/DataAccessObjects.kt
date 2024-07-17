@@ -6,17 +6,37 @@ import androidx.room.Delete
 import androidx.room.Query
 import androidx.room.Update
 import androidx.room.Upsert
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DataAccessObjects {
     @Upsert
-    suspend fun insertWord(task: DBType.Word)
+    suspend fun insertWord(word: DBType.Word)
     @Delete
-    suspend fun deleteWord(task: DBType.Word)
+    suspend fun deleteWord(word: DBType.Word)
     @Update
     suspend fun updateWord(word: DBType.Word)
+    @Upsert
+    suspend fun insertWordFailed(word: DBType.WordsFailed)
+    @Delete
+    suspend fun deleteWordFailed(word: DBType.WordsFailed)
+    @Update
+    suspend fun updateWordFailed(word: DBType.WordsFailed)
 
     @Query(" SELECT * FROM Word")
     fun readAllData(): LiveData<List<DBType.Word>>
+
+    @Query(" SELECT * FROM WordsFailed")
+    fun readAllDataFailed(): LiveData<List<DBType.WordsFailed>>
+
+    @Query(" Delete FROM WordsFailed WHERE timesPractised>=10")
+    fun checkForCompletedFails()
+
+    @Query("UPDATE WordsFailed SET timesPractised = timesPractised + 1 WHERE english = :englishWord")
+    suspend fun incrementTimesPractised(englishWord: String)
+
+    @Query("UPDATE WordsFailed SET timesPractised = 0 WHERE english = :englishWord")
+    suspend fun decrementTimesPractised(englishWord: String)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM WordsFailed WHERE english = :englishWord)")
+    suspend fun isWordInFailedDatabase(englishWord: String): Boolean
 }

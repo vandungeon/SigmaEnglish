@@ -13,8 +13,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [DBType.Word::class],
-    version = 2,
+    entities = [DBType.Word::class, DBType.WordsFailed::class],
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -37,7 +37,7 @@ abstract class WordDatabase : RoomDatabase() {
                     WordDatabase::class.java,
                     "words_database"
                 )
-                    .addMigrations(MIGRATION_1_2)  // Add migration here
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 return instance
@@ -59,10 +59,15 @@ class Converters {
         Log.d("Converter", "returning value ${mutableStateOf(value)}")
     }
 }
-val MIGRATION_1_2 = object : Migration(1, 2) {
+val MIGRATION_2_3 = object : Migration(1, 2) {
     override fun migrate(database: SupportSQLiteDatabase) {
-        // Example of adding a new column
-        // Adjust according to your schema changes
-        database.execSQL("ALTER TABLE Word ADD COLUMN description TEXT")
+        database.execSQL(
+            "CREATE TABLE IF NOT EXISTS WordsFailed (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
+                    "english TEXT NOT NULL," +
+                    "russian TEXT NOT NULL," +
+                    "description TEXT NOT NULL DEFAULT ''," +
+                    "timesPractised INTEGER NOT NULL DEFAULT 0)"
+        )
     }
 }

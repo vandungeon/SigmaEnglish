@@ -2,8 +2,10 @@ package com.example.sigmaenglish
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.Icon
+import android.graphics.drawable.shapes.Shape
 import android.os.Bundle
 import android.provider.UserDictionary.Words
 import android.util.Log
@@ -35,6 +37,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.with
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,7 +45,11 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -50,6 +57,9 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
@@ -66,6 +76,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -83,6 +94,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -140,18 +152,20 @@ fun NavigationComponent(viewModel: ViewModel) {
         composable("trainingMenu") { TrainingMenu(viewModel, navController) }
         composable("settings") { SettingsScreen(viewModel, navController) }
         composable(
-            route = "WordTrainingMenu/{selectedNumber}/{selectedType}/{wordRefreshList}",
+            route = "WordTrainingMenu/{selectedNumber}/{selectedType}/{wordRefreshList}/{WordSourse}",
             arguments = listOf(
                 navArgument("selectedNumber") { type = NavType.IntType },
                 navArgument("selectedType") { type = NavType.StringType },
-                navArgument("wordRefreshList") {type = NavType.StringType}
+                navArgument("wordRefreshList") {type = NavType.StringType},
+                navArgument("WordSourse") {type = NavType.StringType}
             )
         ) { backStackEntry ->
             val selectedNumber = backStackEntry.arguments?.getInt("selectedNumber")
             val selectedType = backStackEntry.arguments?.getString("selectedType")
             val wordRefresh = backStackEntry.arguments?.getString("wordRefreshList")
+            val WordSourse = backStackEntry.arguments?.getString("WordSourse")
             val wordRefreshList = wordRefresh?.let { convertJsonToWords(it) } ?: emptyList()
-            WordTrainingMenu(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All", wordRefreshList)
+            WordTrainingMenu(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All", wordRefreshList, WordSourse ?: "normal")
         }
         composable(route = "ResultsScreen/{timeSpent}/{selectedType}/{wordsLearned}",
             arguments = listOf(
@@ -329,7 +343,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                         IconButton(onClick = {navController.navigate("start") {
                             popUpTo("start") { inclusive = true }
                         }}) {
-                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
+                            Icon(Icons.Default.Home, contentDescription = "Exit")
                         }
                     }
                 }
@@ -713,7 +727,7 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                     text = "Start",
                     modifier = Modifier.clickable {
                         val mockList : List<Word> = emptyList()
-                        navController.navigate("WordTrainingMenu/$selectedNumber/$selectedType/$mockList")
+                        navController.navigate("WordTrainingMenu/$selectedNumber/$selectedType/$mockList/normal")
                     }
                 )
             }
@@ -764,16 +778,19 @@ fun WordTrainingMenu(
     navController: NavHostController,
     wordCount: Int,
     type: String,
-    wordsRefresh: List<Word>? = null
+    wordsRefresh: List<Word>? = null,
+    WordSourse: String
 ) {
     val (isHintExpanded, setHintExpanded) = remember { mutableStateOf(false) }
+    val (isHintExpanded2, setHintExpanded2) = remember { mutableStateOf(false) }
     var currentWordIndex: Int by remember { mutableIntStateOf(0) }
     val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
-
+    val wordListFailed by viewModel.wordsFailed.observeAsState(emptyList())
     var words by remember { mutableStateOf(emptyList<Word>()) }
 
     var startTime by remember { mutableStateOf(System.currentTimeMillis()) }
     var elapsedTime by remember { mutableStateOf(0L) }
+    val viewModelInitialized = remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -781,17 +798,24 @@ fun WordTrainingMenu(
             delay(1000L)
         }
     }
-    LaunchedEffect(wordsRefresh, wordList) {
-        words = if (!wordsRefresh.isNullOrEmpty()) {
-            wordsRefresh
-        } else {
-            val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) }.shuffled()
-            shuffledWords.take(wordCount)
+    LaunchedEffect(Unit) {
+        delay(500L)
+        words = when {
+            !wordsRefresh.isNullOrEmpty() && WordSourse == "refresh" -> {
+                wordsRefresh
+            }
+            WordSourse == "normal" -> {
+                val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) }.shuffled()
+                shuffledWords.take(wordCount)
+            }
+            else -> {
+                val shuffledWords = wordListFailed.map { Word(it.english, it.russian, it.description, true) }.shuffled()
+                shuffledWords.take(wordCount)
+            }
         }
-        Log.d("WordTraining", "Words initialized $words")
+        Log.d("WordTraining", "Words initialized $words, words failed $wordListFailed")
     }
 
-    Log.d("WordTraining", "Words initialized $words")
     val onClick: () -> Unit = {
         if ((currentWordIndex + 1) < words.size) {
             currentWordIndex++
@@ -820,14 +844,15 @@ fun WordTrainingMenu(
     }
 
     if (words.isEmpty()) {
-        Log.d("Loading screen", "${words}")
+        Log.d("Loading screen", "Loading words${words}")
         CircularProgressIndicator(
             modifier = Modifier
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         )
-
-    } else {
+        Log.d("WordTraining", "Words initialized inside circular thingy$words, source is set to $WordSourse")
+    }
+    else {
         SigmaEnglishTheme {
             Scaffold(
                 modifier = Modifier.pointerInput(Unit) {
@@ -852,9 +877,15 @@ fun WordTrainingMenu(
                                 "Skip",
                                 modifier = Modifier.clickable(onClick = {
                                     if (currentWordIndex + 1 == words.size) {
+                                        if (WordSourse == "failedTraining") {
+                                            viewModel.decrementTraining(words[currentWordIndex].english)
+                                        }
                                         words[currentWordIndex].isCorrect = false
                                         navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}")
                                     } else {
+                                        if (WordSourse == "failedTraining") {
+                                            viewModel.decrementTraining(words[currentWordIndex].english)
+                                        }
                                         setHintExpanded(false)
                                         words[currentWordIndex].isCorrect = false
                                         onClick()
@@ -900,22 +931,43 @@ fun WordTrainingMenu(
                             modifier = Modifier.offset { IntOffset(shake.value.roundToInt(), y = 0) }
                         )
                     }
-                    Surface(
-                        shape = MaterialTheme.shapes.medium,
-                        shadowElevation = 1.dp,
-                        color = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier
-                            .animateContentSize()
-                            .padding(all = 16.dp)
-                    ) {
-                        Hint(
+
+                        Column(Modifier.padding(2.dp), horizontalAlignment = Alignment.CenterHorizontally){
+                            Surface(
+                                shape = MaterialTheme.shapes.medium,
+                                shadowElevation = 1.dp,
+                                color = colorScheme.surface,
+                                modifier = Modifier
+                                    .animateContentSize()
+                                    .padding(all = 16.dp)
+                            ){
+                            Hint(
+                            iconUsed = true,
                             initialText = "Description",
                             expandedText = words[currentWordIndex].description,
                             icon = Icons.Default.Info,
                             isExpanded = isHintExpanded,
                             onExpandChange = setHintExpanded
-                        )
-                    }
+                            )
+                            }
+                            Surface(
+                                shape = MaterialTheme.shapes.medium,
+                                shadowElevation = 1.dp,
+                                color = colorScheme.surface,
+                                modifier = Modifier
+                                    .animateContentSize()
+                                    .padding(all = 2.dp)
+                            ) {
+                                Hint(
+                                    iconUsed = false,
+                                    initialText = "\uD83E\uDD37   See answer",
+                                    expandedText = words[currentWordIndex].russian,
+                                    icon = Icons.Default.Info,
+                                    isExpanded = isHintExpanded2,
+                                    onExpandChange = setHintExpanded2
+                                )
+                            }
+                        }
                     TextField(
                         value = textfield,
                         onValueChange = { textfield = it },
@@ -924,6 +976,9 @@ fun WordTrainingMenu(
                             IconButton(
                                 onClick = {
                                     if (checkAnswer(textfield, words[currentWordIndex].russian)) {
+                                        if (WordSourse == "failedTraining") {
+                                            viewModel.incrementTraining(words[currentWordIndex].english)
+                                        }
                                         setHintExpanded(false)
                                         if (currentWordIndex + 1 == words.size) {
                                             navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}")
@@ -931,6 +986,9 @@ fun WordTrainingMenu(
                                         textfield = ""
                                         onClick()
                                     } else {
+                                        if (WordSourse == "failedTraining") {
+                                            viewModel.decrementTraining(words[currentWordIndex].english)
+                                        }
                                         trigger = System.currentTimeMillis()
                                         words[currentWordIndex].isCorrect = false
                                     }
@@ -985,24 +1043,34 @@ fun WordTrainingMenu(
     }
 }
 
-
-
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController, timeSpent: Int, selectedType: String, learnedWords: List<Word>) {
-    val wordCount: Int = learnedWords.size
-    val words: String = buildString {
-        learnedWords.forEachIndexed { index, word ->
-            if (index < learnedWords.size - 1) {
-                append("${word.english} - ${word.russian}, ")
-            }
-            else if (index < learnedWords.size ) {
-                append("${word.english} - ${word.russian}")
+fun ResultsScreen(
+    viewModel: ViewModel,
+    navController: NavHostController,
+    timeSpent: Int,
+    selectedType: String,
+    learnedWords: List<Word>
+) {
+    LaunchedEffect(Unit) {
+        learnedWords.forEach { word ->
+            if (!word.isCorrect) {
+                if (!viewModel.isWordInFailedDatabase(word.english)) {
+                    val wordFailed = DBType.WordsFailed(
+                        english = word.english,
+                        russian = word.russian,
+                        description = word.description,
+                        timesPractised = 0
+                    )
+                    viewModel.addWordFailed(word = wordFailed)
+                }
             }
         }
+        viewModel.checkForDeletion()
     }
+
+
+    val wordCount: Int = learnedWords.size
     val accuracy: String = buildString {
         var correctScore = 0
         learnedWords.forEach { word ->
@@ -1018,7 +1086,10 @@ fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController
         append("$percentage%")
     }
 
+    val ScrollState = rememberLazyListState()
     val wordsplaceholder: List<Word> = emptyList()
+    val calculatedAlpha by remember { derivedStateOf {calculateGradientAlpha(ScrollState)}
+    }
 
     Scaffold(
         bottomBar = {
@@ -1032,19 +1103,42 @@ fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController
                         .padding(8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    IconButton(onClick = {navController.navigate("WordTrainingMenu/$wordCount/$selectedType/${convertWordsToJson(learnedWords)}")}) {
+                    IconButton(onClick = {
+                        navController.navigate(
+                            "WordTrainingMenu/$wordCount/$selectedType/${
+                                convertWordsToJson(learnedWords)
+                            }/refresh"
+                        )
+                    }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                    IconButton(onClick = { navController.navigate("WordTrainingMenu/$wordCount/$selectedType/${convertWordsToJson(wordsplaceholder)}")}) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next")
+                    IconButton(onClick = {
+                        navController.navigate(
+                            "WordTrainingMenu/$wordCount/$selectedType/${
+                                convertWordsToJson(wordsplaceholder)
+                            }/normal"
+                        )
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "Next"
+                        )
                     }
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = {
+                        navController.navigate(
+                            "WordTrainingMenu/$wordCount/$selectedType/${
+                                convertWordsToJson(wordsplaceholder)
+                            }/failedTraining"
+                        )
+                    }) {
                         Icon(Icons.Default.Warning, contentDescription = "Mistakes")
                     }
-                    IconButton(onClick = {navController.navigate("start") {
-                        popUpTo("start") { inclusive = true }
-                    }}) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
+                    IconButton(onClick = {
+                        navController.navigate("start") {
+                            popUpTo("start") { inclusive = true }
+                        }
+                    }) {
+                        Icon(Icons.Default.Home, contentDescription = "Exit")
                     }
                 }
             }
@@ -1052,96 +1146,157 @@ fun ResultsScreen(viewModel: ViewModel? = null, navController: NavHostController
     ) { innerPadding ->
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
+                .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
             Text(
                 fontSize = 40.sp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 50.dp),
+                    .padding(vertical = 16.dp),
                 textAlign = TextAlign.Center,
                 text = "Results:\n",
             )
-            Text(
-                fontStyle = FontStyle.Italic,
-                fontSize = 20.sp,
-                modifier = Modifier
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Left,
-                text = "Words: ${words}"
-            )
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            Column(
+            Box(modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(17.dp))
+                .border(
+                    BorderStroke(3.dp, colorScheme.secondary),
+                    shape = RoundedCornerShape(16.dp)
+                )) {
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = innerPadding.calculateBottomPadding() + 70.dp) // Adjust as needed
-                    .pointerInput(Unit) {
-                        detectHorizontalDragGestures { change, dragAmount ->
-                            if (dragAmount < -50) { // Swipe right to left
-                                //   navController.navigate("start") {
-                                //    popUpTo("start") { inclusive = true }
-                                // }
-                            }
-                        }
-                    },
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(vertical = 8.dp),
+                state = ScrollState // Attach scroll state here
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // First Column
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                items(learnedWords) { word ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
                     ) {
                         Text(
-                            modifier = Modifier.padding(16.dp),
-                            fontSize = 30.sp,
-                            textAlign = TextAlign.Center,
-                            text = "words\n${wordCount}",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                            fontSize = 20.sp,
+                            text = "${word.english} - ${word.russian}"
                         )
-                        Text(
-                            modifier = Modifier.padding(16.dp),
-                            fontSize = 30.sp,
-                            textAlign = TextAlign.Center,
-                            text = "Accuracy\n${accuracy}",
-                        )
-                    }
-
-                    // Second Column
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(16.dp),
-                            fontSize = 30.sp,
-                            textAlign = TextAlign.Center,
-                            text = "test type\n${selectedType}",
-                        )
-                        Text(
-                            modifier = Modifier.padding(16.dp),
-                            fontSize = 30.sp,
-                            textAlign = TextAlign.Center,
-                            text = "time\n${timeSpent}s",
-                        )
+                        if (word.isCorrect) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = "success",
+                                tint = Color.Green,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "failure",
+                                tint = Color.Red,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
                     }
                 }
+            }
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 0.dp, horizontal = 2.dp)
+                        .fillMaxWidth()
+                        .height(20.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.5f)),
+                                startY = 0f,
+                                endY = 100f
+                            ),
+                            alpha = calculatedAlpha
+                        )
+                )
 
+
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        // First Column
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(16.dp),
+                                fontSize = 30.sp,
+                                textAlign = TextAlign.Center,
+                                text = "Words\n$wordCount",
+                            )
+                            Text(
+                                modifier = Modifier.padding(16.dp),
+                                fontSize = 30.sp,
+                                textAlign = TextAlign.Center,
+                                text = "Accuracy\n$accuracy",
+                            )
+                        }
+
+                        // Second Column
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(16.dp),
+                                fontSize = 30.sp,
+                                textAlign = TextAlign.Center,
+                                text = "Test Type\n$selectedType",
+                            )
+                            Text(
+                                modifier = Modifier.padding(16.dp),
+                                fontSize = 30.sp,
+                                textAlign = TextAlign.Center,
+                                text = "Time\n${timeSpent}s",
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
+
+private fun calculateGradientAlpha(lazyListState: LazyListState): Float {
+    val totalItems = lazyListState.layoutInfo.totalItemsCount
+    val viewportHeight = lazyListState.layoutInfo.viewportSize.height
+    val itemHeight = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull()?.size ?: 1
+
+    // Calculate the total scrollable height
+    val totalScrollableHeight = (totalItems * itemHeight) - viewportHeight
+
+    // Calculate the current scroll position
+    val currentScrollOffset = (lazyListState.firstVisibleItemIndex * itemHeight) + lazyListState.firstVisibleItemScrollOffset
+
+    // Ensure we do not divide by zero in case totalScrollableHeight is 0
+    return if (totalScrollableHeight > 0) {
+        1f - (currentScrollOffset / totalScrollableHeight.toFloat())
+    } else {
+        1f
+    }
+}
+
 
 fun checkAnswer(userAnswer: String, correctAnswer: String): Boolean {
     return userAnswer.trim().equals(correctAnswer.trim(), ignoreCase = true)
@@ -1220,6 +1375,7 @@ fun AddWordDialog(
 
 @Composable
 fun Hint(
+    iconUsed: Boolean,
     initialText: String,
     expandedText: String,
     icon: ImageVector,
@@ -1227,7 +1383,7 @@ fun Hint(
     onExpandChange: (Boolean) -> Unit
 ) {
     val displayText = if (isExpanded) expandedText else initialText
-
+    Modifier.padding(20.dp)
     Card(
         shape = RoundedCornerShape(16.dp), // Set the round shape here
         colors = CardDefaults.cardColors(lightgray), // Set the container color here
@@ -1240,18 +1396,31 @@ fun Hint(
             modifier = Modifier
                 .padding(all = 8.dp) // Padding inside the Card
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = "Info",
-                modifier = Modifier.padding(horizontal = 0.dp),
-                tint = Color.White
-            )
-            Text(
-                color = Color.White,
-                text = displayText,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(horizontal = 10.dp)
-            )
+            if(iconUsed) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = "Info",
+                    modifier = Modifier.padding(horizontal = 0.dp),
+                    tint = Color.White
+                )
+                Text(
+                    color = Color.White,
+                    text = displayText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 10.dp)
+                )
+            }
+            else {
+
+                Text(
+                    color = Color.White,
+                    text = displayText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 10.dp)
+                )
+            }
+
+
         }
     }
 }
@@ -1286,6 +1455,128 @@ fun Preview() {
     }
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@Preview(showBackground = true)
+@Composable
+fun PreviewTraining(){
+    var placeholder: Int = 0
+    SigmaEnglishTheme {
+        Scaffold(
+            modifier = Modifier.pointerInput(Unit) {
+                detectHorizontalDragGestures { change, dragAmount ->
+                    if (dragAmount < -50) { // Swipe right to left
+                    }
+                }
+            }.fillMaxSize(1f),
+            bottomBar = {
+                BottomAppBar(
+                    containerColor = colorScheme.tertiary,
+                    contentColor = colorScheme.secondary
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp), // Adjust height as needed
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Skip",
+                            modifier = Modifier.clickable(onClick = {
+
+                            }),
+                            color = colorScheme.secondary
+                        )
+                    }
+                }
+            }
+        ) {
+            Text(
+                "1/10",
+                fontSize = 50.sp,
+                modifier = Modifier.padding(26.dp),
+                color = colorScheme.secondary
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize(1f)
+                    .padding(horizontal = 16.dp),
+
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+
+                    Text("words[index].english",
+                        fontSize = 50.sp,
+                        textAlign = TextAlign.Center,
+                        color = colorScheme.secondary,
+                        modifier = Modifier.padding(top = 300.dp),
+
+                    )
+
+                Column(Modifier.padding(2.dp).fillMaxSize(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally){
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        shadowElevation = 1.dp,
+                        color = colorScheme.surface,
+                        modifier = Modifier
+                            .animateContentSize()
+                            .padding(horizontal = 16.dp)
+                            .padding( top = 48.dp)
+                    ){
+                        Hint(
+                            iconUsed = true,
+                            initialText = "Description",
+                            expandedText = "words[currentWordIndex].description",
+                            icon = Icons.Default.Info,
+                            isExpanded = false,
+                            onExpandChange = {!it}
+                        )
+                    }
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        shadowElevation = 1.dp,
+                        color = colorScheme.surface,
+                        modifier = Modifier
+                            .animateContentSize()
+                            .padding(all = 2.dp)
+                    ) {
+                        Hint(
+                            iconUsed = false,
+                            initialText = "\uD83E\uDD37   See answer",
+                            expandedText = "words[currentWordIndex].russian",
+                            icon = Icons.Default.Info,
+                            isExpanded = false,
+                            onExpandChange = {!it}
+                        )
+                    }
+                    TextField(
+                        value = "textfield",
+                        onValueChange = { placeholder++ },
+                        label = { Text("Write your translation here", color = Color.White) },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                }
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send",
+                                    tint = colorScheme.secondary
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth().padding(top = 150.dp),
+                        colors = TextFieldDefaults.colors(
+                            cursorColor = Color.White // Change cursor color to white
+                        )
+                    )
+                }
+            }
+        }
+
+    }
+}
 @Preview(showBackground = true)
 @Composable
 fun PreviewWordListScreen() {
@@ -1315,9 +1606,26 @@ fun ResultsPreview(){
         Word(english = "book", russian = "книга", description = "A written or printed work", false),
         Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
         Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
+        Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true),
+        Word(english = "book", russian = "книга", description = "A written or printed work", false),
+        Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
+        Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
+        Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true) ,
+        Word(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
+        Word(english = "book", russian = "книга", description = "A written or printed work", false),
+        Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
+        Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
+        Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true),
+        Word(english = "book", russian = "книга", description = "A written or printed work", false),
+        Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
+        Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
+        Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true) ,
+        Word(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
+        Word(english = "book", russian = "книга", description = "A written or printed work", false),
+        Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
+        Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
         Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true)
     )
-    ResultsScreen(null, navController = rememberNavController(), timeSpent , selectedType, sampleWords)
 }
 
 

@@ -3,6 +3,7 @@ package com.example.sigmaenglish
 import androidx.compose.runtime.MutableState
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import org.jetbrains.annotations.NotNull
 
 class DBType {
     @Entity
@@ -19,6 +20,15 @@ class DBType {
         @PrimaryKey(autoGenerate = true)
         val id: Int = 0,
         val description: String
+    )
+    @Entity
+    data class WordsFailed(
+        val english: String,
+        val russian: String,
+        @PrimaryKey(autoGenerate = true)
+        val id: Int = 0,
+        val description: String,
+        val timesPractised: Int
     )
 
 }
