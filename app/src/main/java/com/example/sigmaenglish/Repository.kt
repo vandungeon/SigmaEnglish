@@ -43,7 +43,7 @@ class Repository (private val dataAccessObjects: DataAccessObjects){
         return dataAccessObjects.isWordInFailedDatabase(word)
     }
 
-    suspend fun checkForDeletion() {
+    fun checkForDeletion() {
         dataAccessObjects.checkForCompletedFails()
     }
 

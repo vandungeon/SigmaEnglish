@@ -28,7 +28,7 @@ interface DataAccessObjects {
     @Query(" SELECT * FROM WordsFailed")
     fun readAllDataFailed(): LiveData<List<DBType.WordsFailed>>
 
-    @Query(" Delete FROM WordsFailed WHERE timesPractised>=10")
+    @Query(" Delete FROM WordsFailed WHERE timesPractised>=5")
     fun checkForCompletedFails()
 
     @Query("UPDATE WordsFailed SET timesPractised = timesPractised + 1 WHERE english = :englishWord")

@@ -787,7 +787,7 @@ fun WordTrainingMenu(
     val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
     val wordListFailed by viewModel.wordsFailed.observeAsState(emptyList())
     var words by remember { mutableStateOf(emptyList<Word>()) }
-
+    var isSourceEmpty by remember { mutableStateOf(false) }
     var startTime by remember { mutableStateOf(System.currentTimeMillis()) }
     var elapsedTime by remember { mutableStateOf(0L) }
     val viewModelInitialized = remember { mutableStateOf(false) }
@@ -813,6 +813,7 @@ fun WordTrainingMenu(
                 shuffledWords.take(wordCount)
             }
         }
+
         Log.d("WordTraining", "Words initialized $words, words failed $wordListFailed")
     }
 
@@ -844,6 +845,12 @@ fun WordTrainingMenu(
     }
 
     if (words.isEmpty()) {
+        isSourceEmpty = if(WordSourse == "normal"){
+            viewModel.words.value.isNullOrEmpty()
+        }
+        else{
+            viewModel.wordsFailed.value.isNullOrEmpty()
+        }
         Log.d("Loading screen", "Loading words${words}")
         CircularProgressIndicator(
             modifier = Modifier
@@ -1035,6 +1042,53 @@ fun WordTrainingMenu(
                                 isAlertDialogEnabled = false
                             }) {
                             Text("No")
+                        }
+                    }
+                )
+            }
+            if (isSourceEmpty) {
+                AlertDialog(
+                    shape = RoundedCornerShape(16.dp),
+                    tonalElevation = 8.dp,
+                    modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+                    containerColor = colorScheme.tertiary,
+                    onDismissRequest = { navController.navigate("start") {
+                        popUpTo("start") { inclusive = true }
+                    }},
+                    title = { Text("No words to form training on!") },
+                    text = {
+                        if(WordSourse == "normal"){
+                            Text("To form a training list, you should first add some words.\n" +
+                                    " Would you like to be navigated to Word list screen to add some new words?")
+                        }
+                        else{
+                            Text("You quite literally have no mistakes to correct, as of now.\n" +
+                                    " For now, keep up the good work!\nBut test to learn frequently" +
+                                    " failed words can't be generated," +
+                                    " for obvious reasons")
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            colors = CustomButtonColors(),
+                            onClick = {
+                                navController.navigate("Words List") {
+                                    popUpTo("Words List") { inclusive = true }
+                                }
+                            }) {
+                            Text("Move to Word list screen")
+                        }
+                    }
+                    ,
+                    dismissButton = {
+                        Button(
+                            colors = CustomButtonColors(),
+                            onClick = {
+                                navController.navigate("start") {
+                                    popUpTo("start") { inclusive = true }
+                                }
+                            }) {
+                            Text("Move to start screen")
                         }
                     }
                 )
@@ -1462,12 +1516,14 @@ fun PreviewTraining(){
     var placeholder: Int = 0
     SigmaEnglishTheme {
         Scaffold(
-            modifier = Modifier.pointerInput(Unit) {
-                detectHorizontalDragGestures { change, dragAmount ->
-                    if (dragAmount < -50) { // Swipe right to left
+            modifier = Modifier
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures { change, dragAmount ->
+                        if (dragAmount < -50) { // Swipe right to left
+                        }
                     }
                 }
-            }.fillMaxSize(1f),
+                .fillMaxSize(1f),
             bottomBar = {
                 BottomAppBar(
                     containerColor = colorScheme.tertiary,
@@ -1512,7 +1568,10 @@ fun PreviewTraining(){
 
                     )
 
-                Column(Modifier.padding(2.dp).fillMaxSize(1f),
+                Column(
+                    Modifier
+                        .padding(2.dp)
+                        .fillMaxSize(1f),
                     horizontalAlignment = Alignment.CenterHorizontally){
                     Surface(
                         shape = MaterialTheme.shapes.medium,
@@ -1521,7 +1580,7 @@ fun PreviewTraining(){
                         modifier = Modifier
                             .animateContentSize()
                             .padding(horizontal = 16.dp)
-                            .padding( top = 48.dp)
+                            .padding(top = 48.dp)
                     ){
                         Hint(
                             iconUsed = true,
@@ -1566,7 +1625,8 @@ fun PreviewTraining(){
                             }
                         },
                         modifier = Modifier
-                            .fillMaxWidth().padding(top = 150.dp),
+                            .fillMaxWidth()
+                            .padding(top = 150.dp),
                         colors = TextFieldDefaults.colors(
                             cursorColor = Color.White // Change cursor color to white
                         )
