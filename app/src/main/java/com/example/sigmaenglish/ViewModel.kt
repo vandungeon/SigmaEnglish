@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
@@ -30,17 +31,28 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     private val _state = mutableStateOf(ScreenState())
     val state: ScreenState get() = _state.value
 
+    private val _isInitialized = mutableStateOf(false)
+    val isInitialized: Boolean get() = _isInitialized.value
+
     init {
         repository = Repository(wordDAO)
         _words.addSource(repository.readAllData) { words ->
             _words.value = words
             _state.value = _state.value.copy(words = words)
             Log.d("com.example.sigmaenglish.ViewModel", "Words updated: $words")
+            checkInitialization()
         }
         _wordsFailed.addSource(repository.readAllDataFailed) { wordsFailed ->
             _wordsFailed.value = wordsFailed
-            _state.value = _state.value.copy(wordsFailed = wordsFailed) //
+            _state.value = _state.value.copy(wordsFailed = wordsFailed)
             Log.d("com.example.sigmaenglish.ViewModel", "Words updated: $wordsFailed")
+            checkInitialization()
+        }
+    }
+
+    private fun checkInitialization() {
+        if (_words.value != null && _wordsFailed.value != null) {
+            _isInitialized.value = true
         }
     }
 

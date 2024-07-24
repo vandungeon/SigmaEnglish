@@ -594,15 +594,41 @@ fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
         // Example cards for different modes
         Text("Select a mode:")
         Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+        Box(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            ModeCard(mode = "settings", selectedScreen, onSelect = { selectedScreen = "settings" })
-            ModeCard(mode = "otherScreen", selectedScreen, onSelect = { selectedScreen = "otherScreen" })
-            // Add more ModeCard for additional screens
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
+                    ModeCard(
+                        mode = "Classic",
+                        selectedScreen = selectedScreen,
+                        onSelect = { selectedScreen = "Classic" },
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                    ModeCard(
+                        mode = "Mistakes practise",
+                        selectedScreen = selectedScreen,
+                        onSelect = { selectedScreen = "Mistakes" },
+                       modifier = Modifier.padding(top = 16.dp)
+                    )
+
+               // Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp).padding(vertical = 16.dp)
+                    ModeCard(
+                        mode = "Description",
+                        selectedScreen = selectedScreen,
+                        onSelect = { selectedScreen = "Description" },
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                    ModeCard(
+                        mode = "Zen",
+                        selectedScreen = selectedScreen,
+                        onSelect = { selectedScreen = "Zen" },
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+            }
         }
+
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -614,7 +640,7 @@ fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
             }
         ) { screen ->
             when (screen) {
-                "settings" -> navController.navigate("settings")
+                "Classic" -> navController.navigate("settings")
                 //"otherScreen" -> OtherScreen(viewModel = viewModel, navController = navController)
                 // Add more cases for additional screens
                 else -> { /* Handle default case or additional screens */ }
@@ -628,7 +654,6 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
     var showDialog by remember { mutableStateOf(false) }
     var selectedNumber by remember { mutableIntStateOf(10) }
     var selectedType by remember { mutableStateOf("All") }
-
     val numbers = listOf(10, 25, 50, 100) // List of numbers to display
     val types = listOf("Last 10", "Last 25", "All") // List of types to display
     Scaffold(
@@ -675,7 +700,6 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-
                     Row {
                         types.forEach { type ->
                             Text(
@@ -727,7 +751,7 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                     text = "Start",
                     modifier = Modifier.clickable {
                         val mockList : List<Word> = emptyList()
-                        navController.navigate("WordTrainingMenu/$selectedNumber/$selectedType/$mockList/normal")
+                        navController.navigate("WordTrainingMenu/$selectedNumber/$selectedType/$mockList/Classic")
                     }
                 )
             }
@@ -790,23 +814,26 @@ fun WordTrainingMenu(
     var isSourceEmpty by remember { mutableStateOf(false) }
     var startTime by remember { mutableStateOf(System.currentTimeMillis()) }
     var elapsedTime by remember { mutableStateOf(0L) }
-    val viewModelInitialized = remember { mutableStateOf(false) }
-
     LaunchedEffect(Unit) {
         while (true) {
             elapsedTime = System.currentTimeMillis() - startTime
             delay(1000L)
         }
     }
+    val wordLimit = when (type) {
+        "last10" -> 10
+        "last25" -> 25
+        else -> wordCount
+    }
     LaunchedEffect(Unit) {
         delay(500L)
         words = when {
-            !wordsRefresh.isNullOrEmpty() && WordSourse == "refresh" -> {
+            !wordsRefresh.isNullOrEmpty() && WordSourse == "Refresh" -> {
                 wordsRefresh
             }
-            WordSourse == "normal" -> {
+            WordSourse == "Classic" -> {
                 val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) }.shuffled()
-                shuffledWords.take(wordCount)
+                shuffledWords.takeLast(wordLimit)
             }
             else -> {
                 val shuffledWords = wordListFailed.map { Word(it.english, it.russian, it.description, true) }.shuffled()
@@ -845,19 +872,18 @@ fun WordTrainingMenu(
     }
 
     if (words.isEmpty()) {
-        isSourceEmpty = if(WordSourse == "normal"){
-            viewModel.words.value.isNullOrEmpty()
+        if(WordSourse == "Classic" && viewModel.isInitialized){
+            isSourceEmpty = viewModel.words.value.isNullOrEmpty()
         }
-        else{
-            viewModel.wordsFailed.value.isNullOrEmpty()
+        else if (WordSourse == "Mistakes" && viewModel.isInitialized){
+            isSourceEmpty = viewModel.wordsFailed.value.isNullOrEmpty()
         }
-        Log.d("Loading screen", "Loading words${words}")
         CircularProgressIndicator(
             modifier = Modifier
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         )
-        Log.d("WordTraining", "Words initialized inside circular thingy$words, source is set to $WordSourse")
+        Log.d("Loading screen\"", "Words didn't initalize, source is set to $WordSourse, isSourceEmpty is $isSourceEmpty")
     }
     else {
         SigmaEnglishTheme {
@@ -1020,7 +1046,7 @@ fun WordTrainingMenu(
                     modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
                     containerColor = colorScheme.tertiary,
                     onDismissRequest = { isAlertDialogEnabled = false },
-                    title = { Text("Manage Word") },
+                    title = { Text("Are you sure?") },
                     text = {
                         Text("Are you sure you wanna close this window? Your progress will be lost.")
                     },
@@ -1046,54 +1072,54 @@ fun WordTrainingMenu(
                     }
                 )
             }
-            if (isSourceEmpty) {
-                AlertDialog(
-                    shape = RoundedCornerShape(16.dp),
-                    tonalElevation = 8.dp,
-                    modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
-                    containerColor = colorScheme.tertiary,
-                    onDismissRequest = { navController.navigate("start") {
-                        popUpTo("start") { inclusive = true }
-                    }},
-                    title = { Text("No words to form training on!") },
-                    text = {
-                        if(WordSourse == "normal"){
-                            Text("To form a training list, you should first add some words.\n" +
-                                    " Would you like to be navigated to Word list screen to add some new words?")
-                        }
-                        else{
-                            Text("You quite literally have no mistakes to correct, as of now.\n" +
-                                    " For now, keep up the good work!\nBut test to learn frequently" +
-                                    " failed words can't be generated," +
-                                    " for obvious reasons")
-                        }
-                    },
-                    confirmButton = {
-                        Button(
-                            colors = CustomButtonColors(),
-                            onClick = {
-                                navController.navigate("Words List") {
-                                    popUpTo("Words List") { inclusive = true }
-                                }
-                            }) {
-                            Text("Move to Word list screen")
-                        }
-                    }
-                    ,
-                    dismissButton = {
-                        Button(
-                            colors = CustomButtonColors(),
-                            onClick = {
-                                navController.navigate("start") {
-                                    popUpTo("start") { inclusive = true }
-                                }
-                            }) {
-                            Text("Move to start screen")
-                        }
-                    }
-                )
-            }
         }
+    }
+    if (isSourceEmpty) {
+        AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            tonalElevation = 8.dp,
+            modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+            containerColor = colorScheme.tertiary,
+            onDismissRequest = { navController.navigate("start") {
+                popUpTo("start") { inclusive = true }
+            }},
+            title = { Text("No words to form training on!") },
+            text = {
+                if(WordSourse == "Classic"){
+                    Text("To form a training list, you should first add some words.\n" +
+                            " Would you like to be navigated to Word list screen to add some new words?")
+                }
+                else{
+                    Text("You quite literally have no mistakes to correct, as of now.\n" +
+                            " For now, keep up the good work!\nBut test to learn frequently" +
+                            " failed words can't be generated," +
+                            " for obvious reasons")
+                }
+            },
+            confirmButton = {
+                Button(
+                    colors = CustomButtonColors(),
+                    onClick = {
+                        navController.navigate("WordListScreen") {
+                            popUpTo("WordListScreen") { inclusive = true }
+                        }
+                    }) {
+                    Text("Move to Word list screen")
+                }
+            }
+            ,
+            dismissButton = {
+                Button(
+                    colors = CustomButtonColors(),
+                    onClick = {
+                        navController.navigate("start") {
+                            popUpTo("start") { inclusive = true }
+                        }
+                    }) {
+                    Text("Move to start screen")
+                }
+            }
+        )
     }
 }
 
@@ -1123,7 +1149,6 @@ fun ResultsScreen(
         viewModel.checkForDeletion()
     }
 
-
     val wordCount: Int = learnedWords.size
     val accuracy: String = buildString {
         var correctScore = 0
@@ -1140,10 +1165,9 @@ fun ResultsScreen(
         append("$percentage%")
     }
 
-    val ScrollState = rememberLazyListState()
-    val wordsplaceholder: List<Word> = emptyList()
-    val calculatedAlpha by remember { derivedStateOf {calculateGradientAlpha(ScrollState)}
-    }
+    val scrollState = rememberLazyListState()
+    val wordsPlaceholder: List<Word> = emptyList()
+    val calculatedAlpha by remember { derivedStateOf { calculateGradientAlpha(scrollState) } }
 
     Scaffold(
         bottomBar = {
@@ -1161,7 +1185,7 @@ fun ResultsScreen(
                         navController.navigate(
                             "WordTrainingMenu/$wordCount/$selectedType/${
                                 convertWordsToJson(learnedWords)
-                            }/refresh"
+                            }/Refresh"
                         )
                     }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
@@ -1169,8 +1193,8 @@ fun ResultsScreen(
                     IconButton(onClick = {
                         navController.navigate(
                             "WordTrainingMenu/$wordCount/$selectedType/${
-                                convertWordsToJson(wordsplaceholder)
-                            }/normal"
+                                convertWordsToJson(wordsPlaceholder)
+                            }/Classic"
                         )
                     }) {
                         Icon(
@@ -1181,8 +1205,8 @@ fun ResultsScreen(
                     IconButton(onClick = {
                         navController.navigate(
                             "WordTrainingMenu/$wordCount/$selectedType/${
-                                convertWordsToJson(wordsplaceholder)
-                            }/failedTraining"
+                                convertWordsToJson(wordsPlaceholder)
+                            }/Mistakes"
                         )
                     }) {
                         Icon(Icons.Default.Warning, contentDescription = "Mistakes")
@@ -1212,48 +1236,50 @@ fun ResultsScreen(
                 textAlign = TextAlign.Center,
                 text = "Results:\n",
             )
-            Box(modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(17.dp))
-                .border(
-                    BorderStroke(3.dp, colorScheme.secondary),
-                    shape = RoundedCornerShape(16.dp)
-                )) {
-            LazyColumn(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                state = ScrollState // Attach scroll state here
+                    .weight(1f)
+                    .clip(RoundedCornerShape(17.dp))
+                    .border(
+                        BorderStroke(3.dp, MaterialTheme.colorScheme.secondary),
+                        shape = RoundedCornerShape(16.dp)
+                    )
             ) {
-                items(learnedWords) { word ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
-                            fontSize = 20.sp,
-                            text = "${word.english} - ${word.russian}"
-                        )
-                        if (word.isCorrect) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = "success",
-                                tint = Color.Green,
-                                modifier = Modifier.padding(start = 8.dp)
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    state = scrollState
+                ) {
+                    items(learnedWords) { word ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                                fontSize = 20.sp,
+                                text = "${word.english} - ${word.russian}"
                             )
-                        } else {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "failure",
-                                tint = Color.Red,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
+                            if (word.isCorrect) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = "success",
+                                    tint = Color.Green,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "failure",
+                                    tint = Color.Red,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
                         }
                     }
                 }
-            }
                 Box(
                     modifier = Modifier
                         .padding(vertical = 0.dp, horizontal = 2.dp)
@@ -1269,8 +1295,6 @@ fun ResultsScreen(
                             alpha = calculatedAlpha
                         )
                 )
-
-
             }
 
             Box(
@@ -1343,11 +1367,10 @@ private fun calculateGradientAlpha(lazyListState: LazyListState): Float {
     // Calculate the current scroll position
     val currentScrollOffset = (lazyListState.firstVisibleItemIndex * itemHeight) + lazyListState.firstVisibleItemScrollOffset
 
-    // Ensure we do not divide by zero in case totalScrollableHeight is 0
     return if (totalScrollableHeight > 0) {
         1f - (currentScrollOffset / totalScrollableHeight.toFloat())
     } else {
-        1f
+        1f // No scrollable content, so full alpha
     }
 }
 
@@ -1480,9 +1503,14 @@ fun Hint(
 }
 
 @Composable
-fun ModeCard(mode: String, selectedScreen: String, onSelect: () -> Unit) {
+fun ModeCard(
+    mode: String,
+    selectedScreen: String,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier.clickable(onClick = onSelect),
+        modifier = modifier
+            .clickable(onClick = onSelect),
         border = BorderStroke(2.dp, if (mode == selectedScreen) Color.Black else Color.Transparent),
         elevation = CardDefaults.elevatedCardElevation(4.dp),
         shape = RoundedCornerShape(8.dp),
@@ -1491,7 +1519,7 @@ fun ModeCard(mode: String, selectedScreen: String, onSelect: () -> Unit) {
             Text(
                 text = mode,
                 style = TextStyle(
-                    fontSize = 18.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 ),
                 modifier = Modifier.padding(16.dp)
