@@ -1,4 +1,4 @@
-package com.example.sigmaenglish
+package com.example.sigmaenglish.Database
 
 import android.content.Context
 import android.util.Log

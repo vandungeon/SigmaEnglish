@@ -1,6 +1,8 @@
-package com.example.sigmaenglish
+package com.example.sigmaenglish.viewModel
 
 import androidx.lifecycle.LiveData
+import com.example.sigmaenglish.Database.DBType
+import com.example.sigmaenglish.Database.DataAccessObjects
 
 class Repository (private val dataAccessObjects: DataAccessObjects){
 

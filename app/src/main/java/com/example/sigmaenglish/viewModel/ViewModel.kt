@@ -1,18 +1,14 @@
-package com.example.sigmaenglish
+package com.example.sigmaenglish.viewModel
 
 import android.app.Application
 import android.util.Log
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.viewModelScope
-import com.example.sigmaenglish.DBType
-import com.example.sigmaenglish.WordDatabase
-import com.example.sigmaenglish.Repository
-import com.example.sigmaenglish.ScreenState
+import com.example.sigmaenglish.Database.DBType
+import com.example.sigmaenglish.Database.WordDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -39,13 +35,13 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
         _words.addSource(repository.readAllData) { words ->
             _words.value = words
             _state.value = _state.value.copy(words = words)
-            Log.d("com.example.sigmaenglish.ViewModel", "Words updated: $words")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Words updated: $words")
             checkInitialization()
         }
         _wordsFailed.addSource(repository.readAllDataFailed) { wordsFailed ->
             _wordsFailed.value = wordsFailed
             _state.value = _state.value.copy(wordsFailed = wordsFailed)
-            Log.d("com.example.sigmaenglish.ViewModel", "Words updated: $wordsFailed")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Words updated: $wordsFailed")
             checkInitialization()
         }
     }
@@ -57,57 +53,57 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addWord(word: DBType.Word) {
-        Log.d("com.example.sigmaenglish.ViewModel", "Adding word: ${word.english}")
+        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Adding word: ${word.english}")
         viewModelScope.launch(Dispatchers.IO) {
             repository.insertWord(word)
-            Log.d("com.example.sigmaenglish.ViewModel", "Word added successfully")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Word added successfully")
         }
     }
 
     fun deleteWord(word: DBType.Word) {
-        Log.d("com.example.sigmaenglish.ViewModel", "Deleting word: ${word.english}")
+        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Deleting word: ${word.english}")
         viewModelScope.launch(Dispatchers.IO) {
             repository.deleteWord(word)
-            Log.d("com.example.sigmaenglish.ViewModel", "Word deleted successfully")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Word deleted successfully")
         }
     }
     fun updateWord(word: DBType.Word) {
-        Log.d("com.example.sigmaenglish.ViewModel", "Updating word: ${word.english}")
+        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Updating word: ${word.english}")
         viewModelScope.launch(Dispatchers.IO) {
             repository.updateWord(word)
-            Log.d("com.example.sigmaenglish.ViewModel", "Word updated successfully")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Word updated successfully")
         }
     }
 
     fun updateWordFailed(word: DBType.WordsFailed) {
-        Log.d("com.example.sigmaenglish.ViewModel", "Updating word: ${word.english}")
+        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Updating word: ${word.english}")
         viewModelScope.launch(Dispatchers.IO) {
             repository.updateWordFailed(word)
-            Log.d("com.example.sigmaenglish.ViewModel", "Word updated successfully")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Word updated successfully")
         }
     }
 
 
     fun addWordFailed(word: DBType.WordsFailed) {
-        Log.d("com.example.sigmaenglish.ViewModel", "Adding word: ${word.english}")
+        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Adding word: ${word.english}")
         viewModelScope.launch(Dispatchers.IO) {
             repository.insertWordFailed(word)
-            Log.d("com.example.sigmaenglish.ViewModel", "Failed word added successfully")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Failed word added successfully")
         }
     }
 
     fun incrementTraining(word: String) {
-        Log.d("com.example.sigmaenglish.ViewModel", "Checking for deletion")
+        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checking for deletion")
         viewModelScope.launch(Dispatchers.IO) {
             repository.incrementTraining(word)
-            Log.d("com.example.sigmaenglish.ViewModel", "Checked for deletion successfully")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checked for deletion successfully")
         }
     }
     fun decrementTraining(word: String) {
-        Log.d("com.example.sigmaenglish.ViewModel", "Checking for deletion")
+        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checking for deletion")
         viewModelScope.launch(Dispatchers.IO) {
             repository.decrementTraining(word)
-            Log.d("com.example.sigmaenglish.ViewModel", "Checked for deletion successfully")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checked for deletion successfully")
         }
     }
     suspend fun isWordInFailedDatabase(englishWord: String): Boolean {
@@ -117,10 +113,10 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun checkForDeletion() {
-        Log.d("com.example.sigmaenglish.ViewModel", "Checking for deletion")
+        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checking for deletion")
         viewModelScope.launch(Dispatchers.IO) {
             repository.checkForDeletion()
-            Log.d("com.example.sigmaenglish.ViewModel", "Checked for deletion successfully")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checked for deletion successfully")
         }
     }
 
