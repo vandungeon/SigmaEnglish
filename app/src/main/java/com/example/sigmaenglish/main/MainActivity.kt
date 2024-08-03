@@ -162,7 +162,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
             modifier = Modifier
                 .padding(innerPadding)
                 .pointerInput(Unit) {
-                    detectHorizontalDragGestures { change, dragAmount ->
+                    detectHorizontalDragGestures { _, dragAmount ->
                         if (dragAmount < -50) { // Swipe right to left
                             navController.navigate("start") {
                                 popUpTo("start") { inclusive = true }
@@ -265,72 +265,75 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
 @Composable
 fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
     var selectedScreen by remember { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Example cards for different modes
-        Text("Select a mode:")
-        Spacer(modifier = Modifier.height(16.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth()
+    SigmaEnglishTheme {
+        Column(
+            modifier = Modifier.fillMaxSize().background(colorScheme.primary),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp)
+            // Example cards for different modes
+            Text("Select a mode:", style = MaterialTheme.typography.headlineMedium, color = colorScheme.secondary)
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth()
             ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
                     ModeCard(
-                        mode = "Classic",
+                        mode = "Classic  \uD83E\uDDD0",
                         selectedScreen = selectedScreen,
                         onSelect = { selectedScreen = "Classic" },
                         modifier = Modifier.padding(top = 16.dp)
                     )
                     ModeCard(
-                        mode = "Mistakes practise",
+                        mode = "Mistakes practise  ❌",
                         selectedScreen = selectedScreen,
                         onSelect = { selectedScreen = "Mistakes" },
-                       modifier = Modifier.padding(top = 16.dp)
+                        modifier = Modifier.padding(top = 16.dp)
                     )
 
-               // Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp).padding(vertical = 16.dp)
+                    // Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp).padding(vertical = 16.dp)
                     ModeCard(
-                        mode = "Description",
+                        mode = "Description  \uD83D\uDCDD",
                         selectedScreen = selectedScreen,
                         onSelect = { selectedScreen = "Description" },
                         modifier = Modifier.padding(top = 16.dp)
                     )
                     ModeCard(
-                        mode = "Zen",
+                        mode = "Zen  \uD83C\uDF43",
                         selectedScreen = selectedScreen,
                         onSelect = { selectedScreen = "Zen" },
                         modifier = Modifier.padding(top = 16.dp)
                     )
+                }
             }
-        }
 
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        // Animated content based on selectedScreen
-        AnimatedContent(
-            targetState = selectedScreen,
-            transitionSpec = {
-                slideInHorizontally { width -> width } togetherWith slideOutHorizontally { width -> -width }
-            }
-        ) { screen ->
-            when (screen) {
-                "Classic" -> navController.navigate("settings")
-                //"otherScreen" -> OtherScreen(viewModel = viewModel, navController = navController)
-                // Add more cases for additional screens
-                else -> { /* Handle default case or additional screens */ }
+            // Animated content based on selectedScreen
+            AnimatedContent(
+                targetState = selectedScreen,
+                transitionSpec = {
+                    slideInHorizontally { width -> width } togetherWith slideOutHorizontally { width -> -width }
+                }
+            ) { screen ->
+                when (screen) {
+                    "Classic" -> navController.navigate("settings/Classic")
+                    "Mistakes" -> navController.navigate("settings/Mistakes")
+                    "Description" -> navController.navigate("settings/Description")
+                    "Zen" -> navController.navigate("settings/Zen")
+                    else -> { /* Handle default case or additional screens */
+                    }
+                }
             }
         }
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
+fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, trainingType: String) {
     var showDialog by remember { mutableStateOf(false) }
     var selectedNumber by remember { mutableIntStateOf(10) }
     var selectedType by remember { mutableStateOf("All") }
@@ -359,10 +362,8 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                                             } else {
                                                 selectedNumber = number
                                             }
-
                                         }
                                         .padding(horizontal = 25.dp),
-                                    //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
                                     color = if (selectedNumber == number) colorScheme.secondary else Color.Black,
                                 )
                             }
@@ -431,7 +432,18 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController) {
                     text = "Start",
                     modifier = Modifier.clickable {
                         val mockList : List<Word> = emptyList()
-                        navController.navigate("WordTrainingScreen/$selectedNumber/$selectedType/$mockList/Classic")
+                        when (trainingType) {
+                            "Classic" -> {
+                                navController.navigate("WordTrainingScreen/$selectedNumber/$selectedType/$mockList/Classic")
+                            }
+                            "Mistakes" -> {
+                                navController.navigate("WordTrainingScreen/$selectedNumber/$selectedType/$mockList/Mistakes")
+                            }
+                            "Description" -> {
+                                navController.navigate("WordTrainingScreenDescription/$selectedNumber/$selectedType")
+                            }
+                        }
+
                     }
                 )
             }
@@ -472,8 +484,8 @@ fun WordTrainingScreen(
     val wordListFailed by viewModel.wordsFailed.observeAsState(emptyList())
     var words by remember { mutableStateOf(emptyList<Word>()) }
     var isSourceEmpty by remember { mutableStateOf(false) }
-    val startTime by remember { mutableStateOf(System.currentTimeMillis()) }
-    var elapsedTime by remember { mutableStateOf(0L) }
+    val startTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var elapsedTime by remember { mutableLongStateOf(0L) }
     LaunchedEffect(Unit) {
         while (true) {
             elapsedTime = System.currentTimeMillis() - startTime
@@ -518,7 +530,7 @@ fun WordTrainingScreen(
     val focusManager = LocalFocusManager.current
 
     val shake = remember { Animatable(0f) }
-    var trigger by remember { mutableStateOf(0L) }
+    var trigger by remember { mutableLongStateOf(0L) }
     LaunchedEffect(trigger) {
         if (trigger != 0L) {
             for (i in 0..10) {
@@ -791,14 +803,14 @@ fun WordTrainingScreenDescription(
     type: String
 ) {
     val (isHintExpanded, setHintExpanded) = remember { mutableStateOf(false) }
-    val (isHintExpanded2, setHintExpanded2) = remember { mutableStateOf(false) }
     var currentWordIndex: Int by remember { mutableIntStateOf(0) }
     val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
-    val wordListFailed by viewModel.wordsFailed.observeAsState(emptyList())
     var words by remember { mutableStateOf(emptyList<Word>()) }
     var isSourceEmpty by remember { mutableStateOf(false) }
-    val startTime by remember { mutableStateOf(System.currentTimeMillis()) }
-    var elapsedTime by remember { mutableStateOf(0L) }
+    val startTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var elapsedTime by remember { mutableLongStateOf(0L) }
+    var isAlertDialogEnabled by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         while (true) {
             elapsedTime = System.currentTimeMillis() - startTime
@@ -815,7 +827,8 @@ fun WordTrainingScreenDescription(
         val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) }.shuffled()
         words = shuffledWords.takeLast(wordLimit)
 
-        Log.d("WordTraining", "Words initialized $words, words failed $wordListFailed")
+        Log.d("WordTraining", "Words initialized $words")
+        if(words.size <4 || words[3] == null) {isSourceEmpty = true}
     }
 
     val goToNewWord: () -> Unit = {
@@ -823,9 +836,7 @@ fun WordTrainingScreenDescription(
             currentWordIndex++
         }
     }
-    var isAlertDialogEnabled by remember { mutableStateOf(false) }
-    val isKeyboardVisible = rememberKeyboardVisibilityObserver()
-    val focusManager = LocalFocusManager.current
+
 
     val shake = remember { Animatable(0f) }
     var trigger by remember { mutableStateOf(0L) }
@@ -892,11 +903,6 @@ fun WordTrainingScreenDescription(
                     }
                 }
             ) {
-                LaunchedEffect(isKeyboardVisible.value) {
-                    if (!isKeyboardVisible.value) {
-                        focusManager.clearFocus()
-                    }
-                }
                 Text(
                     "${currentWordIndex + 1}/${words.size}",
                     fontSize = 50.sp,
@@ -948,90 +954,83 @@ fun WordTrainingScreenDescription(
                     }
 
                     SigmaEnglishTheme {
+                        if(words.size >=4 && words[3] != null) {
+                            var selectedAnswer by remember { mutableStateOf<String?>(null) }
+                            var rightAnswer by remember { mutableStateOf("") }
+                            var showResults by remember { mutableStateOf<Boolean?>(null) }
+                            var options by remember { mutableStateOf<List<String>>(emptyList()) }
 
-                        var selectedAnswer by remember { mutableStateOf("null") }
-                        var rightAnswer by remember { mutableStateOf("") }
-                        var showResults by remember { mutableStateOf<Boolean?>(null) }
-                        val options = listOf("Option A", "Option B", "Option C", "Option D")
-                        val buttonColors = options.map { _ ->
-                            animateColorAsState(
-                                targetValue = when {
-                                    selectedAnswer == rightAnswer && showResults == true -> Color.Green
-                                    selectedAnswer != rightAnswer && showResults == true -> Color.Red
-                                    else -> colorScheme.secondary
-                                },
-                                animationSpec = tween(durationMillis = 500)
-                            ).value
-                        }
-                        val onClick: (String) -> Unit = { selectedOption ->
-                            showResults = true
-                            triggerDelay = System.currentTimeMillis()
-                            if (checkAnswer(selectedOption, words[currentWordIndex].english)) {
-                                setHintExpanded(false)
-                                if (currentWordIndex + 1 == words.size) {
-                                    navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}")
+                            LaunchedEffect(currentWordIndex) {
+                                val randomPosition = (0..3).random()
+                                val remainingOptions =
+                                    wordList.filter { it.english != rightAnswer }.shuffled().take(3)
+                                        .map { it.english }
+                                options = mutableListOf<String>().apply {
+                                    addAll(remainingOptions)
+                                    add(randomPosition, rightAnswer)
                                 }
-                                goToNewWord()
-                            } else {
-                                trigger = System.currentTimeMillis()
-                                words[currentWordIndex].isCorrect = false
                             }
-                            showResults = false
-                        }
+                            @Composable
+                            fun getButtonColor(option: String): Color {
+                                return when {
+                                    showResults == true && option == rightAnswer -> Color.Green
+                                    showResults == true && option == selectedAnswer && option != rightAnswer -> Color.Red
+                                    else -> colorScheme.secondary
+                                }
+                            }
 
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            val buttonColors = options.map { option ->
+                                animateColorAsState(
+                                    targetValue = getButtonColor(option),
+                                    animationSpec = tween(durationMillis = 500)
+                                ).value
+                            }
+
+                            val onClick: (String) -> Unit = { selectedOption ->
+                                selectedAnswer = selectedOption
+                                showResults = true
+                                triggerDelay = System.currentTimeMillis()
+
+                                if (checkAnswer(selectedOption, words[currentWordIndex].english)) {
+                                    setHintExpanded(false)
+                                    if (currentWordIndex + 1 == words.size) {
+                                        navController.navigate(
+                                            "ResultsScreen/${elapsedTime / 1000}/$type/${
+                                                convertWordsToJson(
+                                                    words
+                                                )
+                                            }"
+                                        )
+                                    }
+                                    goToNewWord()
+                                } else {
+                                    trigger = System.currentTimeMillis()
+                                    words[currentWordIndex].isCorrect = false
+                                }
+
+                                showResults = false
+                            }
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
                             ) {
-                                val buttonWidth = 200.dp
-
-                                Button(
-                                    onClick = { onClick("Option A") },
-                                    modifier = Modifier.width(buttonWidth),
-                                    colors = ButtonDefaults.buttonColors(contentColor = buttonColors[0])
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
-                                    Text(
-                                        "Option A: Short word",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Start
-                                    )
-                                }
-                                Button(
-                                    onClick = { onClick("Option B") },
-                                    modifier = Modifier.width(buttonWidth),
-                                    colors = ButtonDefaults.buttonColors(contentColor = buttonColors[1])
-                                ) {
-                                    Text(
-                                        "Option B: Loooooong",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Start
-                                    )
-                                }
-                                Button(
-                                    onClick = { onClick("Option C") },
-                                    modifier = Modifier.width(buttonWidth),
-                                    colors = ButtonDefaults.buttonColors(contentColor = buttonColors[2])
-                                ) {
-                                    Text(
-                                        "Option C: test",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Start
-                                    )
-                                }
-                                Button(
-                                    onClick = { onClick("Option D") },
-                                    modifier = Modifier.width(buttonWidth),
-                                    colors = ButtonDefaults.buttonColors(contentColor = buttonColors[3])
-                                ) {
-                                    Text(
-                                        "Option D: dfhdfgdfgdfg",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Start
-                                    )
+                                    options.forEachIndexed { index, option ->
+                                        Button(
+                                            onClick = { onClick(option) },
+                                            colors = ButtonDefaults.buttonColors(contentColor = buttonColors[index]),
+                                            modifier = Modifier.width(200.dp)
+                                        ) {
+                                            Text(
+                                                option,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                textAlign = TextAlign.Start
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1083,7 +1082,7 @@ fun WordTrainingScreenDescription(
             onDismissRequest = { navController.navigate("start") {
                 popUpTo("start") { inclusive = true }
             }},
-            title = { Text("No words to form training on!") },
+            title = { Text("Not enough words to form training on!") },
             text = {
                     Text("To form a training list, you should first add some words.\n" +
                             " Would you like to be navigated to Word list screen to add some new words?")
@@ -1169,7 +1168,7 @@ fun ResultsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
+                        .padding(all = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     IconButton(onClick = {
@@ -1232,7 +1231,7 @@ fun ResultsScreen(
                     .weight(1f)
                     .clip(RoundedCornerShape(17.dp))
                     .border(
-                        BorderStroke(3.dp, MaterialTheme.colorScheme.secondary),
+                        BorderStroke(3.dp, colorScheme.secondary),
                         shape = RoundedCornerShape(16.dp)
                     )
             ) {

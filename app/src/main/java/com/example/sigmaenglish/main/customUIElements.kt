@@ -17,6 +17,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sigmaenglish.Database.DBType
+import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
 import com.example.sigmaenglish.ui.theme.lightgray
 import com.example.sigmaenglish.viewModel.ViewModel
 
@@ -219,24 +221,35 @@ fun ModeCard(
     selectedScreen: String,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier
-            .clickable(onClick = onSelect),
-        border = BorderStroke(2.dp, if (mode == selectedScreen) Color.Black else Color.Transparent),
-        elevation = CardDefaults.elevatedCardElevation(4.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardColors(contentColor = Color.LightGray, containerColor = Color.White, disabledContentColor = Color.DarkGray, disabledContainerColor = Color.DarkGray),
-        content = {
-            Text(
-                text = mode,
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier.padding(16.dp)
-            )
-        }
-    )
+    SigmaEnglishTheme {
+
+        Card(
+            modifier = modifier
+                .clickable(onClick = onSelect),
+            border = BorderStroke(
+                2.dp,
+                if (mode == selectedScreen) Color.Black else Color.Transparent
+            ),
+            elevation = CardDefaults.elevatedCardElevation(4.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = CardColors(
+                contentColor = colorScheme.secondary,
+                containerColor = colorScheme.tertiary,
+                disabledContentColor = Color.DarkGray,
+                disabledContainerColor = Color.DarkGray
+            ),
+            content = {
+                Text(
+                    text = mode,
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        )
+    }
 }
 
 @Composable

@@ -13,6 +13,7 @@ import com.example.sigmaenglish.main.TrainingMenu
 import com.example.sigmaenglish.main.Word
 import com.example.sigmaenglish.main.WordListScreen
 import com.example.sigmaenglish.main.WordTrainingScreen
+import com.example.sigmaenglish.main.WordTrainingScreenDescription
 import com.example.sigmaenglish.viewModel.ViewModel
 import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.reflect.TypeToken
 import com.google.gson.Gson
@@ -35,9 +36,17 @@ fun NavigationComponent(viewModel: ViewModel) {
         composable("start") { StartScreen(navController) }
         composable("WordListScreen") { WordListScreen(viewModel, navController) }
         composable("trainingMenu") { TrainingMenu(viewModel, navController) }
-        composable("settings") { SettingsScreen(viewModel, navController) }
         composable(
-            route = "WordTrainingMenu/{selectedNumber}/{selectedType}/{wordRefreshList}/{WordSourse}",
+            route = "settings/{selectedType}",
+            arguments = listOf(
+                navArgument("selectedType"){type = NavType.StringType}
+            )
+        ) { backStackEntry ->
+            val selectedType = backStackEntry.arguments?.getString("selectedType")
+            SettingsScreen(viewModel, navController, selectedType ?: "Classic")
+        }
+        composable(
+            route = "WordTrainingScreen/{selectedNumber}/{selectedType}/{wordRefreshList}/{WordSourse}",
             arguments = listOf(
                 navArgument("selectedNumber") { type = NavType.IntType },
                 navArgument("selectedType") { type = NavType.StringType },
@@ -51,6 +60,17 @@ fun NavigationComponent(viewModel: ViewModel) {
             val WordSourse = backStackEntry.arguments?.getString("WordSourse")
             val wordRefreshList = wordRefresh?.let { convertJsonToWords(it) } ?: emptyList()
             WordTrainingScreen(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All", wordRefreshList, WordSourse ?: "normal")
+        }
+        composable(
+            route = "WordTrainingScreenDescription/{selectedNumber}/{selectedType}",
+            arguments = listOf(
+                navArgument("selectedNumber") { type = NavType.IntType },
+                navArgument("selectedType") { type = NavType.StringType },
+            )
+        ) { backStackEntry ->
+            val selectedNumber = backStackEntry.arguments?.getInt("selectedNumber")
+            val selectedType = backStackEntry.arguments?.getString("selectedType")
+            WordTrainingScreenDescription(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All")
         }
         composable(route = "ResultsScreen/{timeSpent}/{selectedType}/{wordsLearned}",
             arguments = listOf(
