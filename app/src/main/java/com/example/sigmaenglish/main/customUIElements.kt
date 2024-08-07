@@ -295,7 +295,9 @@ fun WordManagementDialog(
             }
         },
         confirmButton = {
-            Button(onClick = {
+            Button(
+                colors = customButtonColors(),
+                onClick = {
                 // Handle word update
                 onUpdate(
                     word.copy(
@@ -309,7 +311,9 @@ fun WordManagementDialog(
             }
         },
         dismissButton = {
-            Button(onClick = onDelete) {
+            Button(
+                colors = customButtonColors(),
+                onClick = onDelete) {
                 Text("Delete")
             }
         }

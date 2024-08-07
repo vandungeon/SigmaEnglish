@@ -72,17 +72,19 @@ fun NavigationComponent(viewModel: ViewModel) {
             val selectedType = backStackEntry.arguments?.getString("selectedType")
             WordTrainingScreenDescription(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All")
         }
-        composable(route = "ResultsScreen/{timeSpent}/{selectedType}/{wordsLearned}",
+        composable(route = "ResultsScreen/{timeSpent}/{selectedType}/{wordsLearned}/{selectedMode}",
             arguments = listOf(
                 navArgument("timeSpent") { type = NavType.IntType },
                 navArgument("selectedType") { type = NavType.StringType },
-                navArgument("wordsLearned") { type = NavType.StringType}
+                navArgument("wordsLearned") { type = NavType.StringType},
+                navArgument("selectedMode") {type = NavType.StringType}
             )) { backStackEntry ->
             val timeSpent = backStackEntry.arguments?.getInt("timeSpent")?: 0
             val selectedType = backStackEntry.arguments?.getString("selectedType") ?: "All"
             val wordsLearnedJson = backStackEntry.arguments?.getString("wordsLearned")
             val wordsLearned = wordsLearnedJson?.let { convertJsonToWords(it) } ?: emptyList()
-            ResultsScreen(viewModel, navController, timeSpent, selectedType, wordsLearned)
+            val selectedMode = backStackEntry.arguments?.getString("selectedMode") ?: "Classic"
+            ResultsScreen(viewModel, navController, timeSpent, selectedType, wordsLearned, selectedMode)
         }
     }
 }

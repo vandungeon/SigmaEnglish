@@ -44,6 +44,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -55,8 +57,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +73,8 @@ import com.example.sigmaenglish.Database.DBType
 import com.example.sigmaenglish.navigation.NavigationComponent
 import com.example.sigmaenglish.navigation.convertWordsToJson
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
+import com.example.sigmaenglish.ui.theme.customText
+import com.example.sigmaenglish.ui.theme.customTitle
 import com.example.sigmaenglish.viewModel.ViewModel
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
@@ -84,6 +93,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             SigmaEnglishTheme {
                 val viewModel: ViewModel = ViewModelProvider(this, ViewModelProvider.AndroidViewModelFactory.getInstance(application))[ViewModel::class.java]
+                val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
                 NavigationComponent(viewModel)
             }
         }
@@ -181,7 +191,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                         TableCellHeader(text = "Translation", weight = 1f)
                     }
                 }
-                itemsIndexed(wordList) { index, word ->
+                itemsIndexed(wordList) { _, word ->
                     var isExpanded by remember { mutableStateOf(false) }
 
                     Column(
@@ -267,7 +277,9 @@ fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
     var selectedScreen by remember { mutableStateOf("") }
     SigmaEnglishTheme {
         Column(
-            modifier = Modifier.fillMaxSize().background(colorScheme.primary),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colorScheme.primary),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -586,7 +598,7 @@ fun WordTrainingScreen(
                                             viewModel.decrementTraining(words[currentWordIndex].english)
                                         }
                                         words[currentWordIndex].isCorrect = false
-                                        navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}")
+                                        navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}/Classic")
                                     } else {
                                         if (WordSourse == "failedTraining") {
                                             viewModel.decrementTraining(words[currentWordIndex].english)
@@ -686,7 +698,7 @@ fun WordTrainingScreen(
                                         }
                                         setHintExpanded(false)
                                         if (currentWordIndex + 1 == words.size) {
-                                            navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}")
+                                            navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}/Classic")
                                         }
                                         textfield = ""
                                         onClick()
@@ -811,6 +823,17 @@ fun WordTrainingScreenDescription(
     var elapsedTime by remember { mutableLongStateOf(0L) }
     var isAlertDialogEnabled by remember { mutableStateOf(false) }
 
+    var rightAnswer by remember { mutableStateOf("") }
+    var selectedAnswer by remember { mutableStateOf<String?>(null) }
+    var showResults by remember { mutableStateOf<Boolean?>(false) }
+    var options by remember { mutableStateOf<List<String>>(emptyList()) }
+    var wrongAnswers by remember { mutableStateOf<Set<String>>(emptySet()) }
+    fun resetAnswersState() {
+        selectedAnswer = null
+        showResults = false
+        wrongAnswers = emptySet()
+    }
+
     LaunchedEffect(Unit) {
         while (true) {
             elapsedTime = System.currentTimeMillis() - startTime
@@ -828,19 +851,21 @@ fun WordTrainingScreenDescription(
         words = shuffledWords.takeLast(wordLimit)
 
         Log.d("WordTraining", "Words initialized $words")
-        if(words.size <4 || words[3] == null) {isSourceEmpty = true}
+        if(words.size <4) {isSourceEmpty = true}
+        rightAnswer = words[currentWordIndex].english
     }
 
     val goToNewWord: () -> Unit = {
         if ((currentWordIndex + 1) < words.size) {
             currentWordIndex++
+            rightAnswer = words[currentWordIndex].english
+            resetAnswersState()
         }
     }
 
-
     val shake = remember { Animatable(0f) }
-    var trigger by remember { mutableStateOf(0L) }
-    var triggerDelay by remember { mutableStateOf(0L) }
+    var trigger by remember { mutableLongStateOf(0L) }
+    var triggerDelay by remember { mutableLongStateOf(0L) }
     LaunchedEffect(trigger) {
         if (trigger != 0L) {
             for (i in 0..10) {
@@ -853,7 +878,13 @@ fun WordTrainingScreenDescription(
         }
     }
     LaunchedEffect(triggerDelay) {
-        delay(1500L)
+        Log.d("Delay", "Delay attempted, current trigger value = $triggerDelay")
+        if (triggerDelay != 0L) {
+            Log.d("Delay", "Delay started")
+            delay(1500L)
+            goToNewWord()
+            Log.d("Delay", "Delay ended")
+        }
     }
     if (words.isEmpty()) {
             isSourceEmpty = viewModel.words.value.isNullOrEmpty()
@@ -862,13 +893,13 @@ fun WordTrainingScreenDescription(
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         )
-        Log.d("Loading screen\"", "Words didn't initalize isSourceEmpty is $isSourceEmpty")
+        Log.d("Loading screen\"", "Words didn't initialize isSourceEmpty is $isSourceEmpty")
     }
     else {
         SigmaEnglishTheme {
             Scaffold(
                 modifier = Modifier.pointerInput(Unit) {
-                    detectHorizontalDragGestures { change, dragAmount ->
+                    detectHorizontalDragGestures { _, dragAmount ->
                         if (dragAmount < -50) { // Swipe right to left
                             isAlertDialogEnabled = true
                         }
@@ -890,7 +921,7 @@ fun WordTrainingScreenDescription(
                                 modifier = Modifier.clickable(onClick = {
                                     if (currentWordIndex + 1 == words.size) {
                                         words[currentWordIndex].isCorrect = false
-                                        navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}")
+                                        navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}/Description")
                                     } else {
                                         setHintExpanded(false)
                                         words[currentWordIndex].isCorrect = false
@@ -906,20 +937,18 @@ fun WordTrainingScreenDescription(
                 Text(
                     "${currentWordIndex + 1}/${words.size}",
                     fontSize = 50.sp,
-                    modifier = Modifier.padding(26.dp),
+                    modifier = Modifier.padding(16.dp),
                     color = colorScheme.secondary
                 )
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
                         .padding(horizontal = 16.dp)
-                        .padding(vertical = 250.dp),
+                        .padding(top = 300.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     AnimatedContent(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
+                            .fillMaxWidth(),
                         targetState = currentWordIndex,
                         transitionSpec = {
                             (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
@@ -932,11 +961,8 @@ fun WordTrainingScreenDescription(
                             modifier = Modifier.offset { IntOffset(shake.value.roundToInt(), y = 0) }
                         )
                     }
-
-                    Column(Modifier.padding(2.dp), horizontalAlignment = Alignment.CenterHorizontally){
                         Surface(
                             shape = MaterialTheme.shapes.medium,
-                            shadowElevation = 1.dp,
                             color = colorScheme.surface,
                             modifier = Modifier
                                 .animateContentSize()
@@ -951,14 +977,9 @@ fun WordTrainingScreenDescription(
                                 onExpandChange = setHintExpanded
                             )
                         }
-                    }
 
-                    SigmaEnglishTheme {
-                        if(words.size >=4 && words[3] != null) {
-                            var selectedAnswer by remember { mutableStateOf<String?>(null) }
-                            var rightAnswer by remember { mutableStateOf("") }
-                            var showResults by remember { mutableStateOf<Boolean?>(null) }
-                            var options by remember { mutableStateOf<List<String>>(emptyList()) }
+                        if(words.size >=4) {
+
 
                             LaunchedEffect(currentWordIndex) {
                                 val randomPosition = (0..3).random()
@@ -974,11 +995,10 @@ fun WordTrainingScreenDescription(
                             fun getButtonColor(option: String): Color {
                                 return when {
                                     showResults == true && option == rightAnswer -> Color.Green
-                                    showResults == true && option == selectedAnswer && option != rightAnswer -> Color.Red
+                                    wrongAnswers.contains(option) -> Color.Red
                                     else -> colorScheme.secondary
                                 }
                             }
-
                             val buttonColors = options.map { option ->
                                 animateColorAsState(
                                     targetValue = getButtonColor(option),
@@ -988,35 +1008,25 @@ fun WordTrainingScreenDescription(
 
                             val onClick: (String) -> Unit = { selectedOption ->
                                 selectedAnswer = selectedOption
-                                showResults = true
-                                triggerDelay = System.currentTimeMillis()
-
                                 if (checkAnswer(selectedOption, words[currentWordIndex].english)) {
-                                    setHintExpanded(false)
+                                    showResults = true
                                     if (currentWordIndex + 1 == words.size) {
                                         navController.navigate(
-                                            "ResultsScreen/${elapsedTime / 1000}/$type/${
-                                                convertWordsToJson(
-                                                    words
-                                                )
-                                            }"
+                                            "ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}/Description"
                                         )
                                     }
-                                    goToNewWord()
+                                    triggerDelay = System.currentTimeMillis()
+                                    setHintExpanded(false)
                                 } else {
+                                    wrongAnswers = wrongAnswers + selectedOption
                                     trigger = System.currentTimeMillis()
                                     words[currentWordIndex].isCorrect = false
                                 }
 
-                                showResults = false
                             }
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     options.forEachIndexed { index, option ->
                                         Button(
@@ -1027,12 +1037,12 @@ fun WordTrainingScreenDescription(
                                             Text(
                                                 option,
                                                 modifier = Modifier.fillMaxWidth(),
-                                                textAlign = TextAlign.Start
+                                                textAlign = TextAlign.Center
                                             )
+
                                         }
                                     }
-                                }
-                            }
+
                         }
                     }
 
@@ -1120,7 +1130,8 @@ fun ResultsScreen(
     navController: NavHostController,
     timeSpent: Int,
     selectedType: String,
-    learnedWords: List<Word>
+    learnedWords: List<Word>,
+    selectedMode: String
 ) {
     LaunchedEffect(Unit) {
         learnedWords.forEach { word ->
@@ -1171,21 +1182,30 @@ fun ResultsScreen(
                         .padding(all = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    IconButton(onClick = {
-                        navController.navigate(
-                            "WordTrainingScreen/$wordCount/$selectedType/${
-                                convertWordsToJson(learnedWords)
-                            }/Refresh"
-                        )
-                    }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    if(selectedMode != "Description") {
+                        IconButton(onClick = {
+                            navController.navigate(
+                                "WordTrainingScreen/$wordCount/$selectedType/${
+                                    convertWordsToJson(learnedWords)
+                                }/Refresh"
+                            )
+                        }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        }
                     }
                     IconButton(onClick = {
-                        navController.navigate(
-                            "WordTrainingScreen/$wordCount/$selectedType/${
-                                convertWordsToJson(wordsPlaceholder)
-                            }/Classic"
-                        )
+                        if(selectedMode == "Description") {
+                            navController.navigate(
+                               "WordTrainingScreenDescription/$wordCount/$selectedType"
+                            )
+                        }
+                        else {
+                            navController.navigate(
+                                "WordTrainingScreen/$wordCount/$selectedType/${
+                                    convertWordsToJson(wordsPlaceholder)
+                                }/Classic"
+                            )
+                        }
                     }) {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -1293,61 +1313,75 @@ fun ResultsScreen(
                     .padding(vertical = 16.dp)
             ) {
                 Column(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
                 ) {
+                    val styleHeader = customTitle.toSpanStyle()
+                    val styleText = customText.toSpanStyle()
+                    // First Row
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // First Column
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
                             Text(
-                                modifier = Modifier.padding(16.dp),
-                                fontSize = 30.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp).weight(1f),
                                 textAlign = TextAlign.Center,
-                                text = "Words\n$wordCount",
-                            )
-                            Text(
-                                modifier = Modifier.padding(16.dp),
-                                fontSize = 30.sp,
-                                textAlign = TextAlign.Center,
-                                text = "Accuracy\n$accuracy",
-                            )
-                        }
+                                text = buildAnnotatedString {
+                                    withStyle(style = styleHeader) {
+                                        append("Words\n")
+                                    }
 
-                        // Second Column
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                modifier = Modifier.padding(16.dp),
-                                fontSize = 30.sp,
-                                textAlign = TextAlign.Center,
-                                text = "Test Type\n$selectedType",
+                                    withStyle(style = styleText) {
+                                        append("$wordCount")
+                                    }
+                                }
                             )
                             Text(
-                                modifier = Modifier.padding(16.dp),
-                                fontSize = 30.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp).weight(1f),
                                 textAlign = TextAlign.Center,
-                                text = "Time\n${timeSpent}s",
+                                text = buildAnnotatedString {
+                                    withStyle(style = styleHeader) {
+                                        append("Accuracy\n")
+                                    }
+                                    withStyle(style = styleText) {
+                                        append("$accuracy")
+                                    }
+                                }
                             )
-                        }
+                    }
+                    // Second Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(vertical = 16.dp, horizontal = 10.dp).weight(1f),
+                            textAlign = TextAlign.Center,
+                            text = buildAnnotatedString {
+                                withStyle(style = styleHeader) {
+                                    append("Test Type\n")
+                                }
+                                withStyle(style = styleText) {
+                                    append("$selectedType Words\n$selectedMode")
+                                }
+                            }
+                        )
+                        Text(
+                            modifier = Modifier.padding(vertical = 16.dp, horizontal = 10.dp).weight(1f),
+                            textAlign = TextAlign.Center,
+                            text = buildAnnotatedString {
+                                withStyle(style = styleHeader) {
+                                    append("Time\n")
+                                }
+                                withStyle(style = styleText) {
+                                    append("${timeSpent}s")
+                                }
+                            }
+                        )
                     }
                 }
             }
         }
     }
 }
-
-
-
-
-
-

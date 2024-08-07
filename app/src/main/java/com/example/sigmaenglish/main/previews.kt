@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
@@ -42,6 +43,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -62,6 +64,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -261,204 +264,4 @@ fun ResultsPreview(){
         Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
         Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true)
     )
-}
-
-@Preview
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@Composable
-fun WordTrainingScreenDescription() {
-    val (isHintExpanded, setHintExpanded) = remember { mutableStateOf(false) }
-    val (isHintExpanded2, setHintExpanded2) = remember { mutableStateOf(false) }
-    var currentWordIndex: Int by remember { mutableIntStateOf(0) }
-    var isSourceEmpty by remember { mutableStateOf(false) }
-    val startTime by remember { mutableStateOf(System.currentTimeMillis()) }
-    var elapsedTime by remember { mutableStateOf(0L) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            elapsedTime = System.currentTimeMillis() - startTime
-            delay(1000L)
-        }
-    }
-
-    var isAlertDialogEnabled by remember { mutableStateOf(false) }
-
-    var textfield by remember { mutableStateOf("") }
-    val focusRequester = remember { FocusRequester() }
-    val isKeyboardVisible = rememberKeyboardVisibilityObserver()
-    val focusManager = LocalFocusManager.current
-
-    val shake = remember { Animatable(0f) }
-    var trigger by remember { mutableStateOf(0L) }
-    LaunchedEffect(trigger) {
-        if (trigger != 0L) {
-            for (i in 0..10) {
-                when (i % 2) {
-                    0 -> shake.animateTo(5f, spring(stiffness = 100_000f))
-                    else -> shake.animateTo(-5f, spring(stiffness = 100_000f))
-                }
-            }
-            shake.animateTo(0f)
-        }
-    }
-
-        SigmaEnglishTheme {
-            Scaffold(
-                modifier = Modifier.pointerInput(Unit) {
-                    detectHorizontalDragGestures { change, dragAmount ->
-                        if (dragAmount < -50) { // Swipe right to left
-                            isAlertDialogEnabled = true
-                        }
-                    }
-                },
-                bottomBar = {
-                    BottomAppBar(
-                        containerColor = colorScheme.tertiary,
-                        contentColor = colorScheme.secondary
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp), // Adjust height as needed
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "Skip",
-                                modifier = Modifier.clickable(onClick = {
-                                }),
-                                color = colorScheme.secondary
-                            )
-                        }
-                    }
-                }
-            ) {
-                LaunchedEffect(isKeyboardVisible.value) {
-                    if (!isKeyboardVisible.value) {
-                        focusManager.clearFocus()
-                    }
-                }
-                Text(
-                    "${currentWordIndex + 1}/10",
-                    fontSize = 50.sp,
-                    modifier = Modifier.padding(26.dp),
-                    color = colorScheme.secondary
-                )
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 300.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text("words[index].description", fontStyle = FontStyle.Italic, fontSize = 26.sp, textAlign = TextAlign.Center, color = colorScheme.secondary,
-                            modifier = Modifier.offset { IntOffset(shake.value.roundToInt(), y = 0) }
-                    )
-                    Column(Modifier.padding(0.dp), horizontalAlignment = Alignment.CenterHorizontally){
-                        Surface(
-                            shape = MaterialTheme.shapes.medium,
-                            shadowElevation = 1.dp,
-                            color = colorScheme.surface,
-                            modifier = Modifier
-                                .animateContentSize()
-                                .padding(top = 16.dp)
-                        ){
-                            Hint(
-                                iconUsed = true,
-                                initialText = "Translation",
-                                expandedText = "russian",
-                                icon = Icons.Default.Info,
-                                isExpanded = isHintExpanded,
-                                onExpandChange = setHintExpanded
-                            )
-                        }
-                    }
-                    SigmaEnglishTheme {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                val buttonWidth = 200.dp // Set this to the desired width
-                                Button(
-                                    onClick = { },
-                                    modifier = Modifier.width(buttonWidth),
-                                    colors = customButtonColors()
-                                ) {
-                                    Text(
-                                        "Option A: Short word",
-                                    modifier = Modifier.fillMaxWidth(),
-                                    textAlign = TextAlign.Start
-                                    )
-                                }
-                                Button(
-                                    onClick = { },
-                                    modifier = Modifier.width(buttonWidth),
-                                    colors = customButtonColors()
-                                ) {
-                                    Text(
-                                        "Option B: Loooooong",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Start
-                                    )
-                                }
-                                Button(
-                                    onClick = { },
-                                    modifier = Modifier.width(buttonWidth),
-                                    colors = customButtonColors()
-                                ) {
-                                    Text("Option C: test",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Start
-                                    )
-                                }
-                                Button(
-                                    onClick = { },
-                                    modifier = Modifier.width(buttonWidth),
-                                    colors = customButtonColors()
-                                ) {
-                                    Text("Option D: dfhdfgdfgdfg",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Start
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-//                    TextField(
-//                        value = textfield,
-//                        onValueChange = { textfield = it },
-//                        label = { Text("Write your translation here", color = Color.White) },
-//                        trailingIcon = {
-//                            IconButton(
-//                                onClick = {
-//                                    if (checkAnswer(textfield, words[currentWordIndex].russian)) {
-//                                        setHintExpanded(false)
-//                                        if (currentWordIndex + 1 == words.size) {
-//                                            navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}")
-//                                        }
-//                                        textfield = ""
-//                                        onClick()
-//                                    } else {
-//                                        trigger = System.currentTimeMillis()
-//                                        words[currentWordIndex].isCorrect = false
-//                                    }
-//                                }
-//                            ) {
-//                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = colorScheme.secondary)
-//                            }
-//                        },
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .focusRequester(focusRequester),
-//                        colors = TextFieldDefaults.colors(
-//                            cursorColor = Color.White // Change cursor color to white
-//                        )
-//                    )
-                }
-            }
-        }
 }
