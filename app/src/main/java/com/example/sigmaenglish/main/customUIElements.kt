@@ -10,6 +10,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -20,6 +25,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Text
@@ -27,6 +33,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.currentCompositionErrors
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -315,6 +322,131 @@ fun WordManagementDialog(
                 colors = customButtonColors(),
                 onClick = onDelete) {
                 Text("Delete")
+            }
+        }
+    )
+}
+
+@Composable
+fun ImportWordsDialog(
+    onConfirm: (list: List<TemplateWord>) -> Unit,
+    onDismiss: () -> Unit
+) {
+
+    var Text by remember { mutableStateOf("") }
+    var newTranlation by remember { mutableStateOf("") }
+    var enableButton by remember { mutableStateOf(false)}
+    var enableConfirmButton by remember { mutableStateOf(false)}
+    var showIssueResolver by remember { mutableStateOf(false)}
+    var blankIds by remember { mutableStateOf(mutableListOf<Int>()) }
+    var parsedList by remember { mutableStateOf(mutableListOf<TemplateWord>()) }
+    var currentBlankIndex by remember {
+        mutableStateOf(0)
+    }
+    fun validateInput(eng: String): Boolean {
+        return eng.isNotEmpty()
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Manage Word") },
+        text = {
+            Column {
+                TextField(
+                    value = Text,
+                    onValueChange = { Text = it
+                        if(validateInput(Text)){enableConfirmButton = true}},
+                    label = { Text("Insert your copied text here") }
+                )
+                Button(
+                    colors = customButtonColors(),
+                    enabled = enableConfirmButton,
+                    onClick = {
+                        parsedList = stringParser(Text)
+                        Text = ""
+                        enableConfirmButton = false
+
+                        if (checkForBlanks(parsedList).size < 1){
+                            enableButton = true
+                        }
+                        else {
+                            blankIds = checkForBlanks(parsedList)
+                            showIssueResolver = true
+                        }
+
+                    }) {
+                    Text("Confirm")
+                }
+                if(showIssueResolver){
+                    Column(){
+                        Column() {
+                            Text("Issues left:")
+                            Text("Word: ${parsedList[blankIds[currentBlankIndex]].original}")
+                            Text("Translation: ${parsedList[blankIds[currentBlankIndex]].translation}")
+                            Text("Description: ${parsedList[blankIds[currentBlankIndex]].description}")
+                        }
+                        TextField(
+                            value = newTranlation,
+                            onValueChange = { newTranlation = it },
+                            label = { Text("Enter new translation") }
+                        )
+                        Row(){
+                            Button(
+                                colors = customButtonColors(),
+                                onClick = {
+                                    parsedList.removeAt(blankIds[currentBlankIndex])
+                                }) {
+                                Text("Delete word")
+                            }
+                            Button(
+                                colors = customButtonColors(),
+                                onClick = {
+                                    parsedList[blankIds[currentBlankIndex]].translation = newTranlation
+                                }) {
+                                Text("Set translation")
+                            }
+                            IconButton(onClick = {
+                                currentBlankIndex--
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "go to previous issue")
+                            }
+                            IconButton(onClick = {
+                                currentBlankIndex++
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "go to next issue")
+                            }
+                            if (currentBlankIndex + 1 == blankIds.size){
+                                Text("All issues resolved, you can now continue")
+                                Button(
+                                    colors = customButtonColors(),
+                                    onClick = {
+                                        showIssueResolver = false
+                                        enableButton = true
+                                    }) {
+                                    Text("Confirm")
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                colors = customButtonColors(),
+                enabled = enableButton,
+                onClick = {
+                    onConfirm(parsedList)
+                    onDismiss()
+                }) {
+                Text("Add new words")
+            }
+        },
+        dismissButton = {
+            Button(
+                colors = customButtonColors(),
+                onClick = onDismiss) {
+                Text("Cancel")
             }
         }
     )

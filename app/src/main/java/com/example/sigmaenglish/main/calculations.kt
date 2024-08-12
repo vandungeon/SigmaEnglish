@@ -9,6 +9,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
+import com.example.sigmaenglish.Database.DBType
 
 fun calculateGradientAlpha(lazyListState: LazyListState): Float {
     val totalItems = lazyListState.layoutInfo.totalItemsCount
@@ -26,6 +27,42 @@ fun calculateGradientAlpha(lazyListState: LazyListState): Float {
     } else {
         1f // No scrollable content, so full alpha
     }
+}
+
+fun stringParser(string: String): MutableList<TemplateWord> {
+
+    val wordsList = mutableListOf<TemplateWord>()
+
+    val regex = Regex("""([A-Za-z']+)\s*-\s*([A-Za-z\s'-]+)(?:\s*\(([^)]+)\))?""")
+
+    string.lines().forEach { line ->
+        regex.matchEntire(line.trim())?.destructured?.let { (original, secondPart, thirdPart) ->
+            val isValidTranslation = secondPart.trim().split(Regex("""\s+""")).let {
+                it.size == 1 || (it.size == 2 && it[0].contains('-'))
+            }
+
+            val translation = if (isValidTranslation) secondPart.trim() else ""
+            val description = if (isValidTranslation) thirdPart.trim().ifEmpty { "not provided" } else secondPart.trim()
+
+            val wordData = TemplateWord(
+                original.trim(),
+                translation,
+                if (description.isNotEmpty()) description else "not provided"
+            )
+            wordsList.add(wordData)
+        }
+    }
+    return wordsList
+}
+
+fun checkForBlanks(list: List<TemplateWord>): MutableList<Int> {
+    val blanksIds = mutableListOf<Int>()
+    list.forEachIndexed { index, word ->
+        if (word.translation.isBlank()) {
+            blanksIds.add(index)
+        }
+    }
+    return blanksIds
 }
 
 

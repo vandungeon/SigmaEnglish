@@ -22,5 +22,4 @@ class DBType {
         val description: String,
         val timesPractised: Int
     )
-
 }

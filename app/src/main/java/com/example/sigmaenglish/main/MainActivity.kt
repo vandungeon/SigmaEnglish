@@ -38,6 +38,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
@@ -79,12 +80,13 @@ import com.example.sigmaenglish.viewModel.ViewModel
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-data class Word(
+data class TestWord(
     val english: String,
     val russian: String,
     val description: String,
     var isCorrect: Boolean = false
 )
+data class TemplateWord(val original: String, var translation: String, val description: String)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,7 +94,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SigmaEnglishTheme {
-                val viewModel: ViewModel = ViewModelProvider(this, ViewModelProvider.AndroidViewModelFactory.getInstance(application))[ViewModel::class.java]
+                val viewModel: ViewModel = ViewModelProvider(
+                    this,
+                    ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+                )[ViewModel::class.java]
                 val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
                 NavigationComponent(viewModel)
             }
@@ -132,7 +137,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
     val wordList by viewModel.words.observeAsState(emptyList())
     var showDialog by remember { mutableStateOf(false) }
     var selectedWord by remember { mutableStateOf<DBType.Word?>(null) }
-
+    var importFromNotesDialog by remember { mutableStateOf(false) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -148,10 +153,19 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("Words list", modifier = Modifier.padding(vertical = 10.dp))
-                        IconButton(onClick = {navController.navigate("start") {
-                            popUpTo("start") { inclusive = true }
-                        }}) {
-                            Icon(Icons.Default.Home, contentDescription = "Exit")
+                        Row() {
+                            IconButton(onClick = {
+                                importFromNotesDialog = true
+                            }) {
+                                Icon(Icons.Default.Edit, contentDescription = "import from notes")
+                            }
+                            IconButton(onClick = {
+                                navController.navigate("start") {
+                                    popUpTo("start") { inclusive = true }
+                                }
+                            }) {
+                                Icon(Icons.Default.Home, contentDescription = "Exit")
+                            }
                         }
                     }
                 }
@@ -253,6 +267,22 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
             onDismiss = { showDialog = false }
         )
     }
+    if (importFromNotesDialog) {
+        ImportWordsDialog(
+            onConfirm = { parsedList ->
+                parsedList.forEach { word ->
+                    val newWord = DBType.Word(
+                        english = word.original,
+                        russian = word.translation,
+                        description = word.description,
+                    )
+                    viewModel.addWord(newWord)
+                    showDialog = false
+                }
+            },
+            onDismiss = { showDialog = false }
+        )
+    }
 
     selectedWord?.let { word ->
         WordManagementDialog(
@@ -271,7 +301,6 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
 
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
     var selectedScreen by remember { mutableStateOf("") }
@@ -423,7 +452,7 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
             modifier = Modifier
                 .padding(innerPadding)
                 .pointerInput(Unit) {
-                    detectHorizontalDragGestures { change, dragAmount ->
+                    detectHorizontalDragGestures { _, dragAmount ->
                         if (dragAmount < -50) { // Swipe right to left
                             navController.navigate("start") {
                                 popUpTo("start") { inclusive = true }
@@ -443,7 +472,7 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
                 Text(
                     text = "Start",
                     modifier = Modifier.clickable {
-                        val mockList : List<Word> = emptyList()
+                        val mockList : List<TestWord> = emptyList()
                         when (trainingType) {
                             "Classic" -> {
                                 navController.navigate("WordTrainingScreen/$selectedNumber/$selectedType/$mockList/Classic")
@@ -486,7 +515,7 @@ fun WordTrainingScreen(
     navController: NavHostController,
     wordCount: Int,
     type: String,
-    wordsRefresh: List<Word>? = null,
+    wordsRefresh: List<TestWord>? = null,
     WordSourse: String
 ) {
     val (isHintExpanded, setHintExpanded) = remember { mutableStateOf(false) }
@@ -494,7 +523,7 @@ fun WordTrainingScreen(
     var currentWordIndex: Int by remember { mutableIntStateOf(0) }
     val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
     val wordListFailed by viewModel.wordsFailed.observeAsState(emptyList())
-    var words by remember { mutableStateOf(emptyList<Word>()) }
+    var words by remember { mutableStateOf(emptyList<TestWord>()) }
     var isSourceEmpty by remember { mutableStateOf(false) }
     val startTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var elapsedTime by remember { mutableLongStateOf(0L) }
@@ -516,11 +545,11 @@ fun WordTrainingScreen(
                 wordsRefresh
             }
             WordSourse == "Classic" -> {
-                val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) }.shuffled()
+                val shuffledWords = wordList.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
                 shuffledWords.takeLast(wordLimit)
             }
             else -> {
-                val shuffledWords = wordListFailed.map { Word(it.english, it.russian, it.description, true) }.shuffled()
+                val shuffledWords = wordListFailed.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
                 shuffledWords.take(wordCount)
             }
         }
@@ -573,7 +602,7 @@ fun WordTrainingScreen(
         SigmaEnglishTheme {
             Scaffold(
                 modifier = Modifier.pointerInput(Unit) {
-                    detectHorizontalDragGestures { change, dragAmount ->
+                    detectHorizontalDragGestures { _, dragAmount ->
                         if (dragAmount < -50) { // Swipe right to left
                             isAlertDialogEnabled = true
                         }
@@ -817,7 +846,7 @@ fun WordTrainingScreenDescription(
     val (isHintExpanded, setHintExpanded) = remember { mutableStateOf(false) }
     var currentWordIndex: Int by remember { mutableIntStateOf(0) }
     val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
-    var words by remember { mutableStateOf(emptyList<Word>()) }
+    var words by remember { mutableStateOf(emptyList<TestWord>()) }
     var isSourceEmpty by remember { mutableStateOf(false) }
     val startTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var elapsedTime by remember { mutableLongStateOf(0L) }
@@ -847,7 +876,7 @@ fun WordTrainingScreenDescription(
     }
     LaunchedEffect(Unit) {
         delay(500L)
-        val shuffledWords = wordList.map { Word(it.english, it.russian, it.description, true) }.shuffled()
+        val shuffledWords = wordList.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
         words = shuffledWords.takeLast(wordLimit)
 
         Log.d("WordTraining", "Words initialized $words")
@@ -1130,17 +1159,17 @@ fun ResultsScreen(
     navController: NavHostController,
     timeSpent: Int,
     selectedType: String,
-    learnedWords: List<Word>,
+    learnedWords: List<TestWord>,
     selectedMode: String
 ) {
     LaunchedEffect(Unit) {
-        learnedWords.forEach { word ->
-            if (!word.isCorrect) {
-                if (!viewModel.isWordInFailedDatabase(word.english)) {
+        learnedWords.forEach { TestWord ->
+            if (!TestWord.isCorrect) {
+                if (!viewModel.isWordInFailedDatabase(TestWord.english)) {
                     val wordFailed = DBType.WordsFailed(
-                        english = word.english,
-                        russian = word.russian,
-                        description = word.description,
+                        english = TestWord.english,
+                        russian = TestWord.russian,
+                        description = TestWord.description,
                         timesPractised = 0
                     )
                     viewModel.addWordFailed(word = wordFailed)
@@ -1167,7 +1196,7 @@ fun ResultsScreen(
     }
 
     val scrollState = rememberLazyListState()
-    val wordsPlaceholder: List<Word> = emptyList()
+    val wordsPlaceholder: List<TestWord> = emptyList()
     val calculatedAlpha by remember { derivedStateOf { calculateGradientAlpha(scrollState) } }
 
     Scaffold(
