@@ -396,7 +396,7 @@ fun ImportWordsDialog(
                         AlertDialog(
                             text = {
                                 Column (){
-                                    Text("Please enter words!", color = colorScheme.secondary, fontSize = 16.sp)
+                                    Text("Data you entered is not proper", color = colorScheme.secondary, fontSize = 16.sp)
                                 } },
                             onDismissRequest = { noWordsDialog = false },
                             confirmButton = { Button(
@@ -457,17 +457,25 @@ fun ImportWordsDialog(
                                 colors = customButtonColors(),
                                 onClick = {
                                     blankIds.getOrNull(currentBlankIndex)?.let {
-                                        parsedList[it].translation = newTranslation
-                                        newTranslation = ""
-                                        blankIds.removeAt(currentBlankIndex)
-                                        if (blankIds.isEmpty()) {
-                                            enableButton = true
-                                            showIssueResolver = false
+                                        val isValidTranslation = newTranslation.trim().split(Regex("""\s+""")).let {
+                                            it.size == 1 || (it.size == 2 && it[0].contains('-'))
                                         }
-                                        if (currentBlankIndex >= blankIds.size) {
-                                            currentBlankIndex = blankIds.size - 1
+                                        if(isValidTranslation) {
+                                            parsedList[it].translation = newTranslation
+                                            newTranslation = ""
+                                            blankIds.removeAt(currentBlankIndex)
+                                            if (blankIds.isEmpty()) {
+                                                enableButton = true
+                                                showIssueResolver = false
+                                            }
+                                            if (currentBlankIndex >= blankIds.size) {
+                                                currentBlankIndex = blankIds.size - 1
+                                            }
+                                            currentBlankIndex = currentBlankIndex
                                         }
-                                        currentBlankIndex = currentBlankIndex
+                                        else{
+                                            noWordsDialog = true
+                                        }
                                     }
                                 }
                             ) {
