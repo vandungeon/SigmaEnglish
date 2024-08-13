@@ -280,7 +280,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                     showDialog = false
                 }
             },
-            onDismiss = { showDialog = false }
+            onDismiss = { importFromNotesDialog = false }
         )
     }
 
@@ -876,7 +876,7 @@ fun WordTrainingScreenDescription(
     }
     LaunchedEffect(Unit) {
         delay(500L)
-        val shuffledWords = wordList.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
+        val shuffledWords = wordList.filter { it.description != "Not provided" }.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
         words = shuffledWords.takeLast(wordLimit)
 
         Log.d("WordTraining", "Words initialized $words")

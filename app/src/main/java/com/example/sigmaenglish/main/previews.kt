@@ -239,29 +239,29 @@ fun PreviewWordListScreen() {
 fun ResultsPreview(){
     val timeSpent = 10
     val selectedType = "Standart"
-    val sampleWords: List<Word> = listOf(
-        Word(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
-        Word(english = "book", russian = "книга", description = "A written or printed work", false),
-        Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
-        Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
-        Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true),
-        Word(english = "book", russian = "книга", description = "A written or printed work", false),
-        Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
-        Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
-        Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true) ,
-        Word(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
-        Word(english = "book", russian = "книга", description = "A written or printed work", false),
-        Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
-        Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
-        Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true),
-        Word(english = "book", russian = "книга", description = "A written or printed work", false),
-        Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
-        Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
-        Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true) ,
-        Word(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
-        Word(english = "book", russian = "книга", description = "A written or printed work", false),
-        Word(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
-        Word(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
-        Word(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true)
+    val sampleWords: List<TestWord> = listOf(
+        TestWord(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
+        TestWord(english = "book", russian = "книга", description = "A written or printed work", false),
+        TestWord(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
+        TestWord(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
+        TestWord(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true),
+        TestWord(english = "book", russian = "книга", description = "A written or printed work", false),
+        TestWord(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
+        TestWord(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
+        TestWord(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true) ,
+        TestWord(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
+        TestWord(english = "book", russian = "книга", description = "A written or printed work", false),
+        TestWord(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
+        TestWord(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
+        TestWord(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true),
+        TestWord(english = "book", russian = "книга", description = "A written or printed work", false),
+        TestWord(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
+        TestWord(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
+        TestWord(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true) ,
+        TestWord(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
+        TestWord(english = "book", russian = "книга", description = "A written or printed work", false),
+        TestWord(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
+        TestWord(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
+        TestWord(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true)
     )
 }

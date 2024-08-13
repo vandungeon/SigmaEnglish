@@ -10,7 +10,7 @@ import com.example.sigmaenglish.main.ResultsScreen
 import com.example.sigmaenglish.main.SettingsScreen
 import com.example.sigmaenglish.main.StartScreen
 import com.example.sigmaenglish.main.TrainingMenu
-import com.example.sigmaenglish.main.Word
+import com.example.sigmaenglish.main.TestWord
 import com.example.sigmaenglish.main.WordListScreen
 import com.example.sigmaenglish.main.WordTrainingScreen
 import com.example.sigmaenglish.main.WordTrainingScreenDescription
@@ -18,14 +18,14 @@ import com.example.sigmaenglish.viewModel.ViewModel
 import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.reflect.TypeToken
 import com.google.gson.Gson
 
-fun convertWordsToJson(words: List<Word>): String {
+fun convertWordsToJson(words: List<TestWord>): String {
     val gson = Gson()
     return gson.toJson(words)
 }
 
-fun convertJsonToWords(json: String): List<Word> {
+fun convertJsonToWords(json: String): List<TestWord> {
     val gson = Gson()
-    val type = object : TypeToken<List<Word>>() {}.type
+    val type = object : TypeToken<List<TestWord>>() {}.type
     return gson.fromJson(json, type)
 }
 

@@ -3,10 +3,14 @@ package com.example.sigmaenglish.main
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +39,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.currentCompositionErrors
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -67,8 +72,8 @@ fun customButtonColors(): ButtonColors {
     return ButtonDefaults.buttonColors(
         containerColor = colorScheme.tertiary,
         contentColor = colorScheme.secondary,
-        disabledContainerColor = colorScheme.tertiary.copy(alpha = 0.3f),
-        disabledContentColor = colorScheme.onTertiary.copy(alpha = 0.3f)
+        disabledContainerColor = colorScheme.tertiary.copy(alpha = 0.7f),
+        disabledContentColor = colorScheme.secondary.copy(alpha = 0.3f)
     )
 }
 
@@ -151,7 +156,7 @@ fun AddWordDialog(
                         onDismiss()
                     }
                     else{
-                        onConfirm(englishWord, russianWord, "No description provided")
+                        onConfirm(englishWord, russianWord, "Not provided")
                         onDismiss()
                     }
                 }
@@ -332,99 +337,166 @@ fun ImportWordsDialog(
     onConfirm: (list: List<TemplateWord>) -> Unit,
     onDismiss: () -> Unit
 ) {
-
-    var Text by remember { mutableStateOf("") }
-    var newTranlation by remember { mutableStateOf("") }
-    var enableButton by remember { mutableStateOf(false)}
-    var enableConfirmButton by remember { mutableStateOf(false)}
-    var showIssueResolver by remember { mutableStateOf(false)}
+    var text by remember { mutableStateOf("") }
+    var newTranslation by remember { mutableStateOf("") }
+    var enableButton by remember { mutableStateOf(false) }
+    var showInitialButtons by remember { mutableStateOf(true) }
+    var enableConfirmButton by remember { mutableStateOf(false) }
+    var noWordsDialog by remember { mutableStateOf(false) }
+    var showIssueResolver by remember { mutableStateOf(false) }
     var blankIds by remember { mutableStateOf(mutableListOf<Int>()) }
     var parsedList by remember { mutableStateOf(mutableListOf<TemplateWord>()) }
-    var currentBlankIndex by remember {
-        mutableStateOf(0)
-    }
+    var currentBlankIndex by remember { mutableIntStateOf(0) }
+
     fun validateInput(eng: String): Boolean {
         return eng.isNotEmpty()
     }
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.Black,
         title = { Text("Manage Word") },
         text = {
             Column {
-                TextField(
-                    value = Text,
-                    onValueChange = { Text = it
-                        if(validateInput(Text)){enableConfirmButton = true}},
-                    label = { Text("Insert your copied text here") }
-                )
-                Button(
-                    colors = customButtonColors(),
-                    enabled = enableConfirmButton,
-                    onClick = {
-                        parsedList = stringParser(Text)
-                        Text = ""
-                        enableConfirmButton = false
+                if (showInitialButtons) {
+                    TextField(
+                        value = text,
+                        onValueChange = {
+                            text = it
+                            enableConfirmButton = validateInput(text)
+                        },
+                        label = { Text("Insert your copied text here") }
+                    )
+                    Button(
+                        colors = customButtonColors(),
+                        enabled = enableConfirmButton,
+                        onClick = {
+                            parsedList = stringParser(text)
+                            text = ""
+                            enableConfirmButton = false
 
-                        if (checkForBlanks(parsedList).size < 1){
-                            enableButton = true
+                            blankIds = checkForBlanks(parsedList).toMutableList()
+                            if(parsedList.isNotEmpty()) {
+                                if (blankIds.isEmpty()) {
+                                    showInitialButtons = false
+                                    enableButton = true
+                                } else {
+                                    showIssueResolver = true
+                                    showInitialButtons = false
+                                }
+                            }
+                            else {
+                                noWordsDialog = true
+                            }
                         }
-                        else {
-                            blankIds = checkForBlanks(parsedList)
-                            showIssueResolver = true
-                        }
-
-                    }) {
-                    Text("Confirm")
+                    ) {
+                        Text("Confirm")
+                    }
+                    if (noWordsDialog) {
+                        AlertDialog(
+                            text = {
+                                Column (){
+                                    Text("Please enter words!", color = colorScheme.secondary, fontSize = 16.sp)
+                                } },
+                            onDismissRequest = { noWordsDialog = false },
+                            confirmButton = { Button(
+                                colors = customButtonColors(),
+                                onClick = { noWordsDialog = false}){
+                                Text("Okay")
+                            }}
+                        )
+                    }
                 }
-                if(showIssueResolver){
-                    Column(){
-                        Column() {
-                            Text("Issues left:")
+                if (showIssueResolver) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight(0.6f)
+                            .padding(8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                        ) {
+                            Text("Issues left: ${blankIds.size}")
                             Text("Word: ${parsedList[blankIds[currentBlankIndex]].original}")
                             Text("Translation: ${parsedList[blankIds[currentBlankIndex]].translation}")
                             Text("Description: ${parsedList[blankIds[currentBlankIndex]].description}")
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
                         TextField(
-                            value = newTranlation,
-                            onValueChange = { newTranlation = it },
-                            label = { Text("Enter new translation") }
+                            value = newTranslation,
+                            onValueChange = { newTranslation = it },
+                            label = { Text("Enter new translation") },
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Row(){
+                        Spacer(modifier = Modifier.height(32.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
                             Button(
                                 colors = customButtonColors(),
                                 onClick = {
-                                    parsedList.removeAt(blankIds[currentBlankIndex])
-                                }) {
-                                Text("Delete word")
+                                    blankIds.getOrNull(currentBlankIndex)?.let {
+                                        parsedList.removeAt(currentBlankIndex)
+                                        blankIds.removeAt(currentBlankIndex)
+                                        if (blankIds.isEmpty()) {
+                                            enableButton = true
+                                            showIssueResolver = false
+                                        }
+                                        if (currentBlankIndex >= blankIds.size) {
+                                            currentBlankIndex = blankIds.size - 1
+                                        }
+                                        currentBlankIndex = currentBlankIndex
+                                    }
+                                }
+                            ) {
+                                Text("Delete word", fontSize = 14.sp)
                             }
                             Button(
                                 colors = customButtonColors(),
                                 onClick = {
-                                    parsedList[blankIds[currentBlankIndex]].translation = newTranlation
-                                }) {
+                                    blankIds.getOrNull(currentBlankIndex)?.let {
+                                        parsedList[it].translation = newTranslation
+                                        newTranslation = ""
+                                        blankIds.removeAt(currentBlankIndex)
+                                        if (blankIds.isEmpty()) {
+                                            enableButton = true
+                                            showIssueResolver = false
+                                        }
+                                        if (currentBlankIndex >= blankIds.size) {
+                                            currentBlankIndex = blankIds.size - 1
+                                        }
+                                        currentBlankIndex = currentBlankIndex
+                                    }
+                                }
+                            ) {
                                 Text("Set translation")
                             }
-                            IconButton(onClick = {
-                                currentBlankIndex--
-                            }) {
-                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "go to previous issue")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row {
+                            IconButton(
+                                onClick = {
+                                    if (currentBlankIndex > 0) currentBlankIndex--
+                                },
+                                enabled = currentBlankIndex > 0
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    contentDescription = "Go to previous issue"
+                                )
                             }
-                            IconButton(onClick = {
-                                currentBlankIndex++
-                            }) {
-                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "go to next issue")
-                            }
-                            if (currentBlankIndex + 1 == blankIds.size){
-                                Text("All issues resolved, you can now continue")
-                                Button(
-                                    colors = customButtonColors(),
-                                    onClick = {
-                                        showIssueResolver = false
-                                        enableButton = true
-                                    }) {
-                                    Text("Confirm")
-                                }
-
+                            IconButton(
+                                onClick = {
+                                    if (currentBlankIndex < blankIds.size - 1) currentBlankIndex++
+                                },
+                                enabled = currentBlankIndex < blankIds.size - 1
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = "Go to next issue"
+                                )
                             }
                         }
                     }
@@ -438,14 +510,16 @@ fun ImportWordsDialog(
                 onClick = {
                     onConfirm(parsedList)
                     onDismiss()
-                }) {
+                }
+            ) {
                 Text("Add new words")
             }
         },
         dismissButton = {
             Button(
                 colors = customButtonColors(),
-                onClick = onDismiss) {
+                onClick = onDismiss
+            ) {
                 Text("Cancel")
             }
         }

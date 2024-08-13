@@ -25,7 +25,7 @@ fun calculateGradientAlpha(lazyListState: LazyListState): Float {
     return if (totalScrollableHeight > 0) {
         1f - (currentScrollOffset / totalScrollableHeight.toFloat())
     } else {
-        1f // No scrollable content, so full alpha
+        0f // No scrollable content, so full alpha
     }
 }
 
