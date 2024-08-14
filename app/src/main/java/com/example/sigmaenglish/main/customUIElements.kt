@@ -1,5 +1,6 @@
 package com.example.sigmaenglish.main
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -408,6 +409,14 @@ fun ImportWordsDialog(
                     }
                 }
                 if (showIssueResolver) {
+                    var issuesLeft by remember { mutableIntStateOf(0) }
+                    var issueWord by remember { mutableStateOf("") }
+                    var issueTranslation by remember { mutableStateOf("") }
+                    var issueDescription by remember { mutableStateOf("") }
+                    issueWord = parsedList[blankIds[currentBlankIndex]].original
+                    issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
+                    issueDescription = parsedList[blankIds[currentBlankIndex]].description
+                    issuesLeft = blankIds.size
                     Column(
                         modifier = Modifier
                             .fillMaxHeight(0.6f)
@@ -418,10 +427,10 @@ fun ImportWordsDialog(
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp)
                         ) {
-                            Text("Issues left: ${blankIds.size}")
-                            Text("Word: ${parsedList[blankIds[currentBlankIndex]].original}")
-                            Text("Translation: ${parsedList[blankIds[currentBlankIndex]].translation}")
-                            Text("Description: ${parsedList[blankIds[currentBlankIndex]].description}")
+                            Text("Issues left: [[$currentBlankIndex] $issuesLeft ")
+                            Text("Word: $issueWord")
+                            Text("Translation: $issueTranslation")
+                            Text("Description: $issueDescription")
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         TextField(
@@ -438,22 +447,44 @@ fun ImportWordsDialog(
                                 colors = customButtonColors(),
                                 onClick = {
                                     blankIds.getOrNull(currentBlankIndex)?.let {
-                                        parsedList.removeAt(currentBlankIndex)
-                                        blankIds.removeAt(currentBlankIndex)
-                                        if (blankIds.isEmpty()) {
+                                        Log.d("Delete word", "Parsed list: $parsedList, blankIds: $blankIds, current index: $currentBlankIndex")
+                                        parsedList.removeAt(
+                                            blankIds[currentBlankIndex]
+                                        )
+
+                                        if (parsedList.isEmpty()) {
                                             enableButton = true
                                             showIssueResolver = false
                                         }
-                                        if (currentBlankIndex >= blankIds.size) {
-                                            currentBlankIndex = blankIds.size - 1
+                                        val temp = blankIds.removeAt(currentBlankIndex)
+                                        blankIds = blankIds.map { if (it > temp) it - 1 else it }.toMutableList()
+                                        if (blankIds.isEmpty()) {
+                                            enableButton = true
+                                            showIssueResolver = false
+
                                         }
-                                        currentBlankIndex = currentBlankIndex
+                                        else {
+
+                                            if (currentBlankIndex >= blankIds.size) {
+                                                currentBlankIndex -= 1
+
+                                            }
+                                            if (currentBlankIndex < 0) currentBlankIndex = 0
+
+                                            issueWord = parsedList[blankIds[currentBlankIndex]].original
+
+                                           issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
+
+                                           issueDescription = parsedList[blankIds[currentBlankIndex]].description
+
+                                            issuesLeft = blankIds.size
+                                        }
                                     }
                                 }
                             ) {
                                 Text("Delete word", fontSize = 14.sp)
                             }
-                            Button(
+                           Button(
                                 colors = customButtonColors(),
                                 onClick = {
                                     blankIds.getOrNull(currentBlankIndex)?.let {
@@ -461,17 +492,23 @@ fun ImportWordsDialog(
                                             it.size == 1 || (it.size == 2 && it[0].contains('-'))
                                         }
                                         if(isValidTranslation) {
-                                            parsedList[it].translation = newTranslation
+                                            parsedList[blankIds[currentBlankIndex]].translation = newTranslation
                                             newTranslation = ""
                                             blankIds.removeAt(currentBlankIndex)
                                             if (blankIds.isEmpty()) {
                                                 enableButton = true
                                                 showIssueResolver = false
                                             }
-                                            if (currentBlankIndex >= blankIds.size) {
-                                                currentBlankIndex = blankIds.size - 1
+                                            else {
+                                                if (currentBlankIndex >= blankIds.size && currentBlankIndex - 1 != -1) {
+                                                    currentBlankIndex--
+                                                }
+                                                currentBlankIndex = currentBlankIndex
+                                                issueWord = parsedList[blankIds[currentBlankIndex]].original
+                                                issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
+                                                issueDescription = parsedList[blankIds[currentBlankIndex]].description
+                                                issuesLeft = blankIds.size
                                             }
-                                            currentBlankIndex = currentBlankIndex
                                         }
                                         else{
                                             noWordsDialog = true
@@ -487,6 +524,10 @@ fun ImportWordsDialog(
                             IconButton(
                                 onClick = {
                                     if (currentBlankIndex > 0) currentBlankIndex--
+                                    issueWord = parsedList[blankIds[currentBlankIndex]].original
+                                    issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
+                                    issueDescription = parsedList[blankIds[currentBlankIndex]].description
+                                    issuesLeft = blankIds.size
                                 },
                                 enabled = currentBlankIndex > 0
                             ) {
@@ -498,6 +539,10 @@ fun ImportWordsDialog(
                             IconButton(
                                 onClick = {
                                     if (currentBlankIndex < blankIds.size - 1) currentBlankIndex++
+                                    issueWord = parsedList[blankIds[currentBlankIndex]].original
+                                    issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
+                                    issueDescription = parsedList[blankIds[currentBlankIndex]].description
+                                    issuesLeft = blankIds.size
                                 },
                                 enabled = currentBlankIndex < blankIds.size - 1
                             ) {

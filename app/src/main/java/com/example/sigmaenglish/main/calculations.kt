@@ -33,7 +33,7 @@ fun stringParser(string: String): MutableList<TemplateWord> {
 
     val wordsList = mutableListOf<TemplateWord>()
 
-    val regex = Regex("""([A-Za-z']+)\s*-\s*([A-Za-z\s'-]+)(?:\s*\(([^)]+)\))?""")
+    val regex = Regex("""([A-Za-zА-Яа-я']+)\s*-\s*([A-Za-zА-Яа-я\s'-]+)(?:\s*\(([^)]+)\))?""")
 
     string.lines().forEach { line ->
         regex.matchEntire(line.trim())?.destructured?.let { (original, secondPart, thirdPart) ->
