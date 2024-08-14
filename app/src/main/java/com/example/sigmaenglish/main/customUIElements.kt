@@ -472,11 +472,8 @@ fun ImportWordsDialog(
                                             if (currentBlankIndex < 0) currentBlankIndex = 0
 
                                             issueWord = parsedList[blankIds[currentBlankIndex]].original
-
                                            issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
-
                                            issueDescription = parsedList[blankIds[currentBlankIndex]].description
-
                                             issuesLeft = blankIds.size
                                         }
                                     }
