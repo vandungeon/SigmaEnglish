@@ -396,7 +396,7 @@ fun ImportWordsDialog(
                     if (noWordsDialog) {
                         AlertDialog(
                             text = {
-                                Column (){
+                                Column {
                                     Text("Data you entered is not proper", color = colorScheme.secondary, fontSize = 16.sp)
                                 } },
                             onDismissRequest = { noWordsDialog = false },
@@ -497,10 +497,9 @@ fun ImportWordsDialog(
                                                 showIssueResolver = false
                                             }
                                             else {
-                                                if (currentBlankIndex >= blankIds.size && currentBlankIndex - 1 != -1) {
+                                                if (currentBlankIndex >= blankIds.size) {
                                                     currentBlankIndex--
                                                 }
-                                                currentBlankIndex = currentBlankIndex
                                                 issueWord = parsedList[blankIds[currentBlankIndex]].original
                                                 issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
                                                 issueDescription = parsedList[blankIds[currentBlankIndex]].description

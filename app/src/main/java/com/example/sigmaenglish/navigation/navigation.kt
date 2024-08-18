@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.sigmaenglish.main.ResultsScreen
+import com.example.sigmaenglish.main.ResultsScreenZen
 import com.example.sigmaenglish.main.SettingsScreen
 import com.example.sigmaenglish.main.StartScreen
 import com.example.sigmaenglish.main.TrainingMenu
@@ -14,6 +15,7 @@ import com.example.sigmaenglish.main.TestWord
 import com.example.sigmaenglish.main.WordListScreen
 import com.example.sigmaenglish.main.WordTrainingScreen
 import com.example.sigmaenglish.main.WordTrainingScreenDescription
+import com.example.sigmaenglish.main.WordTrainingScreenZen
 import com.example.sigmaenglish.viewModel.ViewModel
 import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.reflect.TypeToken
 import com.google.gson.Gson
@@ -72,6 +74,11 @@ fun NavigationComponent(viewModel: ViewModel) {
             val selectedType = backStackEntry.arguments?.getString("selectedType")
             WordTrainingScreenDescription(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All")
         }
+        composable(
+            route = "WordTrainingScreen"
+        ) {
+            WordTrainingScreenZen(viewModel, navController)
+        }
         composable(route = "ResultsScreen/{timeSpent}/{selectedType}/{wordsLearned}/{selectedMode}",
             arguments = listOf(
                 navArgument("timeSpent") { type = NavType.IntType },
@@ -85,6 +92,18 @@ fun NavigationComponent(viewModel: ViewModel) {
             val wordsLearned = wordsLearnedJson?.let { convertJsonToWords(it) } ?: emptyList()
             val selectedMode = backStackEntry.arguments?.getString("selectedMode") ?: "Classic"
             ResultsScreen(viewModel, navController, timeSpent, selectedType, wordsLearned, selectedMode)
+        }
+        composable(route = "ResultsScreenZen/{timeSpent}/{earnedScore}/{wordsLearned}",
+            arguments = listOf(
+                navArgument("timeSpent") { type = NavType.IntType },
+                navArgument("earnedScore") { type = NavType.IntType },
+                navArgument("wordsLearned") { type = NavType.StringType}
+            )) { backStackEntry ->
+            val timeSpent = backStackEntry.arguments?.getInt("timeSpent")?: 0
+            val earnedScore = backStackEntry.arguments?.getInt("earnedScore")?: 1
+            val wordsLearnedJson = backStackEntry.arguments?.getString("wordsLearned")
+            val wordsLearned = wordsLearnedJson?.let { convertJsonToWords(it) } ?: emptyList()
+            ResultsScreenZen(navController, timeSpent, earnedScore, wordsLearned)
         }
     }
 }

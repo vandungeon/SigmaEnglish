@@ -1,7 +1,9 @@
 plugins {
-    alias(libs.plugins.android.application)
+   alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     id("com.google.devtools.ksp")
+    id("kotlin-kapt")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -51,18 +53,29 @@ android {
 }
 
 dependencies {
+    implementation(libs.hilt.android.v248)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.databinding.adapters)
     implementation(libs.firebase.crashlytics.buildtools)
     annotationProcessor(libs.androidx.room.compiler)
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation(libs.gson)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.android.compiler)
 
     // To use Kotlin Symbol Processing (KSP)
     ksp(libs.androidx.room.compiler)
-    // optional - Kotlin Extensions and Coroutines support for Room
     // optional - Guava support for Room, including Optional and ListenableFuture
     implementation(libs.androidx.room.guava)
+    implementation(libs.androidx.core.ktx.v1120)
 
+    implementation(libs.androidx.lifecycle.viewmodel.ktx.v284)
+    implementation(libs.androidx.lifecycle.livedata.ktx.v262)
+
+    implementation(libs.hilt.android.v250)
+    kapt(libs.hilt.android.compiler.v250)
+    kapt("androidx.hilt:hilt-compiler:1.2.0")
+    implementation("androidx.hilt:hilt-navigation-fragment:1.2.0")
     implementation(libs.androidx.core.ktx.v1131)
     implementation(libs.androidx.lifecycle.runtime.ktx.v270)
     implementation(libs.androidx.activity.compose.v190)
@@ -75,7 +88,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.extensions)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
-
+    implementation(libs.hilt.android.v252)
+    kapt (libs.hilt.compiler)
     androidTestImplementation(libs.androidx.junit.v121)
     androidTestImplementation(libs.androidx.espresso.core.v361)
     androidTestImplementation(platform(libs.androidx.compose.bom.v20240600))
@@ -106,4 +120,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.lifecycle.viewmodel.compose)//google viewmodel setup
+}
+// Allow references to generated code
+kapt {
+    correctErrorTypes = true
 }
