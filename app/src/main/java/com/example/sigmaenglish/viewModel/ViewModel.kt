@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.util.Log
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -13,6 +14,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
@@ -27,9 +29,15 @@ import javax.inject.Inject
 
 //class ViewModel(application: Application, val preferencesManager: PreferencesManager) : AndroidViewModel(application) {
 @HiltViewModel
-class ViewModel @Inject constructor(preferencesManager: PreferencesManager, application: Application) : AndroidViewModel(application) {
+class ViewModel @Inject constructor(
+   private val preferencesManager: PreferencesManager,
+    application: Application
+) : AndroidViewModel(application) {
+
 
     val manager = preferencesManager
+
+    val highestScore: LiveData<Int> = preferencesManager.highestStreakFlow.asLiveData()
     private val repository: Repository
     private val wordDAO = WordDatabase.getDatabase(application).dao()
 
@@ -135,5 +143,19 @@ class ViewModel @Inject constructor(preferencesManager: PreferencesManager, appl
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checked for deletion successfully")
         }
     }
+    fun checkForUpdatesHS(newStreak: Int) {
+        viewModelScope.launch {
+            preferencesManager.checkForUpdateHS(getApplication(), newStreak)
+        }
+    }
+
+    /*
+        fun saveUserPreference(context: Context, highestStreak: Int) {
+            viewModelScope.launch(Dispatchers.IO) {
+                preferencesManager.updateHighestStreak(context, highestStreak)
+            }
+        }
+    */
+
 
 }

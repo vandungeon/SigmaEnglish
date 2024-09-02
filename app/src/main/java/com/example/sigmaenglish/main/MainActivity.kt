@@ -105,7 +105,8 @@ class MainActivity : ComponentActivity() {
                     this,
                     ViewModelProvider.AndroidViewModelFactory.getInstance(application)
                 )[ViewModel::class.java]*/
-                val viewModel: ViewModel = viewModel()
+               // val viewModel: ViewModel = viewModel()
+                val viewModel: ViewModel by viewModels()
                 val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
                 NavigationComponent(viewModel)
             }
@@ -879,7 +880,7 @@ fun WordTrainingScreenZen(
     }
 
     var isAlertDialogEnabled by remember { mutableStateOf(false) }
-
+    val manager = viewModel.manager
     var textfield by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val isKeyboardVisible = rememberKeyboardVisibilityObserver()
@@ -940,11 +941,19 @@ fun WordTrainingScreenZen(
                                         if (currentWordIndex + 1 == words.size) {
                                             words[currentWordIndex].isCorrect = false
                                             resultList = words.take(currentWordIndex + 1)
-                                            navController.navigate("ResultScreenZen/${elapsedTime / 1000}/$earnedScore/${convertWordsToJson(resultList)}")
+                                            Log.d("ZenTraining", "Result list of learned words: $resultList")
+                                            navController.navigate("ResultsScreenZen/${elapsedTime / 1000}/$earnedScore/${convertWordsToJson(resultList)}")
                                         } else {
+                                            if(firstTry){
+                                                earnedScore--
+                                            }
+                                            else{
+                                                firstTry = true
+                                            }
                                             setHintExpanded(false)
                                             words[currentWordIndex].isCorrect = false
                                             onClick()
+                                            textfield = ""
                                         }
                                     }),
                                     color = colorScheme.secondary
@@ -955,8 +964,10 @@ fun WordTrainingScreenZen(
                                     modifier = Modifier.clickable(onClick =
                                     {
                                         words[currentWordIndex].isCorrect = false
+                                        earnedScore--
                                         resultList = words.take(currentWordIndex + 1)
-                                            navController.navigate("ResultScreenZen/${elapsedTime / 1000}/$earnedScore/${convertWordsToJson(resultList)}")
+                                        Log.d("ZenTraining", "Result list of learned words: $resultList")
+                                            navController.navigate("ResultsScreenZen/${elapsedTime / 1000}/$earnedScore/${convertWordsToJson(resultList)}")
                                     }),
                                     color = colorScheme.secondary
                                 )
@@ -971,14 +982,15 @@ fun WordTrainingScreenZen(
                     }
                 }
                 Text(
-                    "Current score: ${currentWordIndex + 1}\n" +
+                    "Current score: ${earnedScore}\n" +
                             "Total count of words: ${words.size}",
-                    fontSize = 32.sp,
+                    fontSize = 24.sp,
                     modifier = Modifier
                         .padding(bottom = 26.dp)
                         .padding(horizontal = 26.dp)
-                        .padding(top = 10.dp),
-                    color = colorScheme.secondary
+                        .padding(top = 50.dp),
+                    color = colorScheme.secondary,
+                    lineHeight = 40.sp
                 )
                 Column(
                     modifier = Modifier
@@ -1053,21 +1065,22 @@ fun WordTrainingScreenZen(
                                         }
                                         setHintExpanded(false)
                                         if (currentWordIndex + 1 == words.size) {
+                                            viewModel.checkForUpdatesHS(earnedScore)
                                             resultList = words.take(currentWordIndex + 1)
-                                            navController.navigate("ResultScreenZen/${elapsedTime / 1000}/$earnedScore/${convertWordsToJson(resultList)}")
+                                            Log.d("ZenTraining", "Result list of learned words: $resultList")
+                                            navController.navigate("ResultsScreenZen/${elapsedTime / 1000}/$earnedScore/${convertWordsToJson(resultList)}")
                                         }
                                         textfield = ""
                                         onClick()
                                         firstTry = true
                                     } else {
                                         if(firstTry) {
-                                            earnedScore--
-                                        }
-                                        else {
                                             firstTry = false
+                                            earnedScore--
                                         }
                                         trigger = System.currentTimeMillis()
                                         words[currentWordIndex].isCorrect = false
+                                        textfield = ""
                                     }
                                 }
                             ) {
@@ -1748,10 +1761,10 @@ fun ResultsScreenZen(
     navController: NavHostController,
     timeSpent: Int,
     earnedScore: Int,
-    learnedWords: List<TestWord>
+    learnedWords: List<TestWord>,
+    viewModel: ViewModel
 ) {
-
-
+    Log.d("ResultsScreenZen", "Learned words: $learnedWords")
     val wordCount: Int = learnedWords.size
     val accuracy: String = buildString {
         var correctScore = 0
@@ -1770,7 +1783,7 @@ fun ResultsScreenZen(
 
     val scrollState = rememberLazyListState()
     val calculatedAlpha by remember { derivedStateOf { calculateGradientAlpha(scrollState) } }
-
+    val highestScore by viewModel.highestScore.observeAsState(0)
     Scaffold(
         bottomBar = {
             BottomAppBar(
@@ -1887,6 +1900,7 @@ fun ResultsScreenZen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(top = 50.dp)
                     .padding(vertical = 16.dp)
             ) {
                 Column(
@@ -1965,20 +1979,39 @@ fun ResultsScreenZen(
                             }
                         )
                     }
-                    Text(
-                        modifier = Modifier
-                            .padding(vertical = 16.dp, horizontal = 10.dp)
-                            .weight(1f),
-                        textAlign = TextAlign.Center,
-                        text = buildAnnotatedString {
-                            withStyle(style = styleHeader) {
-                                append("Score\n")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(vertical = 16.dp, horizontal = 10.dp)
+                                .weight(1f),
+                            textAlign = TextAlign.Center,
+                            text = buildAnnotatedString {
+                                withStyle(style = styleHeader) {
+                                    append("Score\n")
+                                }
+                                withStyle(style = styleText) {
+                                    append("$earnedScore points")
+                                }
                             }
-                            withStyle(style = styleText) {
-                                append("$earnedScore points")
+                        )
+                        Text(
+                            modifier = Modifier
+                                .padding(vertical = 16.dp, horizontal = 10.dp)
+                                .weight(1f),
+                            textAlign = TextAlign.Center,
+                            text = buildAnnotatedString {
+                                withStyle(style = styleHeader) {
+                                    append("Highest Score\n")
+                                }
+                                withStyle(style = styleText) {
+                                    append("${highestScore} points")
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }

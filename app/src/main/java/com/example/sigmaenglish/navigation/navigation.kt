@@ -75,7 +75,7 @@ fun NavigationComponent(viewModel: ViewModel) {
             WordTrainingScreenDescription(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All")
         }
         composable(
-            route = "WordTrainingScreen"
+            route = "WordTrainingScreenZen"
         ) {
             WordTrainingScreenZen(viewModel, navController)
         }
@@ -103,7 +103,7 @@ fun NavigationComponent(viewModel: ViewModel) {
             val earnedScore = backStackEntry.arguments?.getInt("earnedScore")?: 1
             val wordsLearnedJson = backStackEntry.arguments?.getString("wordsLearned")
             val wordsLearned = wordsLearnedJson?.let { convertJsonToWords(it) } ?: emptyList()
-            ResultsScreenZen(navController, timeSpent, earnedScore, wordsLearned)
+            ResultsScreenZen(navController, timeSpent, earnedScore, wordsLearned, viewModel)
         }
     }
 }
