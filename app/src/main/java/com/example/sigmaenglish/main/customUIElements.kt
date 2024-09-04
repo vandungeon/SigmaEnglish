@@ -1,6 +1,13 @@
 package com.example.sigmaenglish.main
 
+import android.graphics.Canvas
+import android.graphics.Outline
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.drawable.shapes.Shape
+import android.util.LayoutDirection
 import android.util.Log
+import android.util.Size
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,7 +17,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,8 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -27,7 +31,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,7 +41,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.currentCompositionErrors
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,16 +48,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sigmaenglish.Database.DBType
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
 import com.example.sigmaenglish.ui.theme.lightgray
 import com.example.sigmaenglish.viewModel.ViewModel
+
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.dp
+import com.example.sigmaenglish.ui.theme.GoldSchemeBrown
+import com.example.sigmaenglish.ui.theme.GoldSchemeGray
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,24 +88,29 @@ fun customTextFieldColors(): TextFieldColors {
 @Composable
 fun customButtonColors(): ButtonColors {
     return ButtonDefaults.buttonColors(
-        containerColor = colorScheme.tertiary,
-        contentColor = colorScheme.secondary,
-        disabledContainerColor = colorScheme.tertiary.copy(alpha = 0.7f),
-        disabledContentColor = colorScheme.secondary.copy(alpha = 0.3f)
+        containerColor = colorScheme.secondary,
+        contentColor = colorScheme.tertiary,
+        disabledContainerColor = Color.Gray.copy(alpha = 0.7f),
+        disabledContentColor = colorScheme.secondary.copy(alpha = 0.4f)
     )
 }
 
 @Composable
 fun RowScope.TableCell(
     text: String,
-    weight: Float,
+    weight: Float
 ) {
+
     Text(
         text = text,
         Modifier
-            .border(1.dp, Color.White)
+            .border(
+                BorderStroke(1.dp, colorScheme.secondary),
+                shape = RectangleShape
+            )
             .weight(weight)
             .padding(8.dp),
+        color = Color.Black
     )
 }
 @Composable
@@ -99,16 +121,16 @@ fun RowScope.TableCellHeader(
     Text(
         text = text,
         Modifier
-            .border(1.dp, Color.White)
+            .border(1.dp, colorScheme.secondary)
             .weight(weight)
             .padding(8.dp),
-        textAlign = TextAlign.Center
+        textAlign = TextAlign.Center,
+        color = colorScheme.primary
     )
 }
 
 @Composable
-fun AddWordDialog(
-    viewModel: ViewModel,
+fun AddWordDialog(viewModel: ViewModel,
     onConfirm: (english: String, russian: String, description: String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -120,9 +142,9 @@ fun AddWordDialog(
         return eng.isNotEmpty() and rus.isNotEmpty()
     }
     AlertDialog(
-        containerColor = colorScheme.primary,
+        containerColor = colorScheme.primaryContainer,
         onDismissRequest = onDismiss,
-        title = { Text("Add New Word") },
+        title = { Text("Add New Word", color = colorScheme.primary) },
         text = {
             Column {
                 TextField(
@@ -133,7 +155,6 @@ fun AddWordDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
-                    colors = customTextFieldColors(),
                     value = russianWord,
                     onValueChange = { russianWord = it
                         if(validateInput(englishWord, russianWord)){enableButton =true}},

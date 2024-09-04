@@ -12,14 +12,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
+private val DarkColorSchemeMonkeyYellow = darkColorScheme(
     primary = DarkGrey,
     secondary = BananaYellow,
     tertiary = accentGrey,
     primaryContainer = darkYellow
 )
 
-private val LightColorScheme = lightColorScheme(
+private val DarkColorSchemeGold = darkColorScheme(
+    primary = GoldSchemeWhite,
+    secondary = GoldSchemeBrown,
+    tertiary = GoldSchemeYellow,
+    primaryContainer = GoldSchemeBlack
+)
+
+private val LightColorSchemeYellow = lightColorScheme(
     primary = DarkGrey,
     secondary = BananaYellow,
     tertiary = accentGrey,
@@ -49,8 +56,8 @@ fun SigmaEnglishTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicDarkColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
-        else -> DarkColorScheme
+        darkTheme -> DarkColorSchemeGold
+        else -> DarkColorSchemeGold
     }
 
     MaterialTheme(

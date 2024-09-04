@@ -151,8 +151,8 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.secondary,
-                    titleContentColor = Color.Black,
+                    containerColor = colorScheme.primaryContainer,
+                    titleContentColor = colorScheme.primary,
                 ),
                 title = {
                     Row(
@@ -183,79 +183,94 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                contentColor = colorScheme.secondary,
-                containerColor = colorScheme.tertiary,
+                contentColor = colorScheme.tertiary,
+                containerColor = colorScheme.secondary,
                 text = { Text("Add Word") },
                 icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
                 onClick = { showDialog = true },
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount ->
-                        if (dragAmount < -50) { // Swipe right to left
-                            navController.navigate("start") {
-                                popUpTo("start") { inclusive = true }
-                            }
-                        }
-                    }
-                },
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                item {
-                    Row(modifier = Modifier
-                        .background(colorScheme.tertiary)
-                        .fillMaxWidth(1f), horizontalArrangement = Arrangement.SpaceBetween) {
-                        TableCellHeader(text = "Original", weight = 1f)
-                        TableCellHeader(text = "Translation", weight = 1f)
-                    }
-                }
-                itemsIndexed(wordList) { _, word ->
-                    var isExpanded by remember { mutableStateOf(false) }
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = { isExpanded = !isExpanded },
-                                onLongClick = { selectedWord = word }
-                            ),
-                        horizontalAlignment = Alignment.Start,
-                        //verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            TableCell(text = word.english, weight = 1f)
-                            TableCell(text = word.russian, weight = 1f)
-                        }
-                        Crossfade(targetState = isExpanded, animationSpec = tween(durationMillis = 300)) { expanded ->
-                            if (expanded) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Info,
-                                        contentDescription = "Info",
-                                        modifier = Modifier.padding(horizontal = 0.dp)
-                                    )
-                                    Text(
-                                        text = word.description,
-                                        style = typography.bodyMedium,
-                                        modifier = Modifier.padding(horizontal = 10.dp)
-                                    )
+        Box(modifier = Modifier
+            .fillMaxSize(1f)
+            .background(colorScheme.primary)) {
+            Column(
+                modifier = Modifier
+                    .background(colorScheme.primary)
+                    .padding(innerPadding)
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures { _, dragAmount ->
+                            if (dragAmount < -50) { // Swipe right to left
+                                navController.navigate("start") {
+                                    popUpTo("start") { inclusive = true }
                                 }
                             }
                         }
+                    },
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .background(colorScheme.secondary)
+                                .fillMaxWidth(1f), horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            TableCellHeader(text = "Original", weight = 1f)
+                            TableCellHeader(text = "Translation", weight = 1f)
+                        }
                     }
-                    // Divider line between rows
-                    HorizontalDivider(thickness = 1.dp, color = Color.Gray)
+                    itemsIndexed(wordList) { index, word ->
+                        var isExpanded by remember { mutableStateOf(false) }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = { isExpanded = !isExpanded },
+                                    onLongClick = { selectedWord = word }
+                                ),
+                            horizontalAlignment = Alignment.Start,
+                            //verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                TableCell(text = word.english, weight = 1f)
+                                TableCell(text = word.russian, weight = 1f)
+
+                            }
+                            if(index == wordList.size - 1 )HorizontalDivider(thickness = 1.dp, color = colorScheme.secondary)
+                            Crossfade(
+                                targetState = isExpanded,
+                                animationSpec = tween(durationMillis = 300)
+                            ) { expanded ->
+                                if (expanded) {
+                                    Row(
+                                        modifier = Modifier.padding(16.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            tint = Color.Black,
+                                            contentDescription = "Info",
+                                            modifier = Modifier.padding(horizontal = 0.dp)
+                                        )
+                                        Text(
+                                            color = Color.Black,
+                                            text = word.description,
+                                            style = typography.bodyMedium,
+                                            modifier = Modifier.padding(horizontal = 10.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+
                 }
             }
         }
@@ -933,7 +948,8 @@ fun WordTrainingScreenZen(
                             contentAlignment = Alignment.Center
                         ) {
                             Row(
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
                                 Text(
                                     "Skip",
@@ -958,7 +974,7 @@ fun WordTrainingScreenZen(
                                     }),
                                     color = colorScheme.secondary
                                 )
-                                VerticalDivider(Modifier.size(4.dp))
+                                VerticalDivider(color = Color.Black, thickness = 3.dp, modifier = Modifier.padding(horizontal = 16.dp))
                                 Text(
                                     "Finish",
                                     modifier = Modifier.clickable(onClick =
@@ -1101,7 +1117,7 @@ fun WordTrainingScreenZen(
                     shape = RoundedCornerShape(16.dp),
                     tonalElevation = 8.dp,
                     modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
-                    containerColor = colorScheme.tertiary,
+                    containerColor = colorScheme.primaryContainer,
                     onDismissRequest = { isAlertDialogEnabled = false },
                     title = { Text("Are you sure?") },
                     text = {
