@@ -1,29 +1,32 @@
 package com.example.sigmaenglish.main
 
-import android.graphics.Canvas
-import android.graphics.Outline
-import android.graphics.Paint
-import android.graphics.Rect
-import android.graphics.drawable.shapes.Shape
-import android.util.LayoutDirection
 import android.util.Log
-import android.util.Size
+import android.widget.Button
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -40,39 +43,73 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sigmaenglish.Database.DBType
+import com.example.sigmaenglish.R
+import com.example.sigmaenglish.navigation.convertWordsToJson
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
 import com.example.sigmaenglish.ui.theme.lightgray
 import com.example.sigmaenglish.viewModel.ViewModel
-
-
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.unit.dp
 import com.example.sigmaenglish.ui.theme.GoldSchemeBrown
 import com.example.sigmaenglish.ui.theme.GoldSchemeGray
+import com.example.sigmaenglish.ui.theme.Typography
+import com.example.sigmaenglish.ui.theme.hintText
+import com.example.sigmaenglish.ui.theme.standartText
 
+@Composable
+fun MyImage() {
+    Image(
+        painter = painterResource(id = R.drawable.logo),
+        contentDescription = "My PNG Image",
+        contentScale = ContentScale.Fit, // (Crop, Fit, FillBounds)
+        modifier = Modifier.size(150.dp)
+    )
+}
+val montserratFontFamily = FontFamily(
+    Font(R.font.montserrat_black, FontWeight.Black),
+    Font(R.font.montserrat_black_italic, FontWeight.Black, FontStyle.Italic),
+    Font(R.font.montserrat_bold, FontWeight.Bold),
+    Font(R.font.montserrat_bold_italic, FontWeight.Bold, FontStyle.Italic),
+    Font(R.font.montserrat_extra_bold, FontWeight.ExtraBold),
+    Font(R.font.montserrat_extra_bold_italic, FontWeight.ExtraBold, FontStyle.Italic),
+    Font(R.font.montserrat_extra_light, FontWeight.ExtraLight),
+    Font(R.font.montserrat_extra_light_italic, FontWeight.ExtraLight, FontStyle.Italic),
+    Font(R.font.montserrat_italic, FontWeight.Normal, FontStyle.Italic),
+    Font(R.font.montserrat_light, FontWeight.Light),
+    Font(R.font.montserrat_light_italic, FontWeight.Light, FontStyle.Italic),
+    Font(R.font.montserrat_medium, FontWeight.Medium),
+    Font(R.font.montserrat_medium_italic, FontWeight.Medium, FontStyle.Italic),
+    Font(R.font.montserrat_regular, FontWeight.Normal),
+    Font(R.font.montserrat_semi_bold, FontWeight.SemiBold),
+    Font(R.font.montserrat_semi_bold_italic, FontWeight.SemiBold, FontStyle.Italic),
+    Font(R.font.montserrat_thin, FontWeight.Thin),
+    Font(R.font.montserrat_thin_italic, FontWeight.Thin, FontStyle.Italic)
+)
+val interFontFamily = FontFamily(
+    Font(R.font.inter),
+    Font(R.font.inter_italic),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,11 +126,32 @@ fun customTextFieldColors(): TextFieldColors {
 fun customButtonColors(): ButtonColors {
     return ButtonDefaults.buttonColors(
         containerColor = colorScheme.secondary,
-        contentColor = colorScheme.tertiary,
-        disabledContainerColor = Color.Gray.copy(alpha = 0.7f),
-        disabledContentColor = colorScheme.secondary.copy(alpha = 0.4f)
+        contentColor = colorScheme.primary,
+        disabledContainerColor = Color.Gray.copy(alpha = 0.2f),
+        disabledContentColor = Color.White.copy(alpha = 0.1f)
     )
 }
+
+@Composable
+fun CustomButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    colors: ButtonColors = customButtonColors(),
+    enabled: Boolean = true,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding
+) {
+    Button(
+        onClick = onClick,
+        colors = colors,
+        modifier = modifier,
+        enabled = enabled,
+        contentPadding = contentPadding
+    ) {
+        Text(text, fontFamily = montserratFontFamily)
+    }
+}
+
 
 @Composable
 fun RowScope.TableCell(
@@ -110,7 +168,8 @@ fun RowScope.TableCell(
             )
             .weight(weight)
             .padding(8.dp),
-        color = Color.Black
+        color = colorScheme.primaryContainer,
+        style = standartText
     )
 }
 @Composable
@@ -125,7 +184,13 @@ fun RowScope.TableCellHeader(
             .weight(weight)
             .padding(8.dp),
         textAlign = TextAlign.Center,
-        color = colorScheme.primary
+        color = colorScheme.primary,
+        style = TextStyle(
+            fontFamily = interFontFamily,
+            fontWeight = FontWeight.W700,
+            fontStyle = FontStyle.Normal,
+            fontSize = 18.sp
+        )
     )
 }
 
@@ -144,7 +209,7 @@ fun AddWordDialog(viewModel: ViewModel,
     AlertDialog(
         containerColor = colorScheme.primaryContainer,
         onDismissRequest = onDismiss,
-        title = { Text("Add New Word", color = colorScheme.primary) },
+        title = { Text("Add new word", color = colorScheme.primary, fontFamily = montserratFontFamily) },
         text = {
             Column {
                 TextField(
@@ -169,7 +234,7 @@ fun AddWordDialog(viewModel: ViewModel,
             }
         },
         confirmButton = {
-            Button(
+            CustomButton(
                 colors = customButtonColors(),
                 enabled = enableButton,
                 onClick = {
@@ -181,18 +246,13 @@ fun AddWordDialog(viewModel: ViewModel,
                         onConfirm(englishWord, russianWord, "Not provided")
                         onDismiss()
                     }
-                }
-            ) {
-                Text("Add")
-            }
+                },
+                text = "Add")
         },
         dismissButton = {
-            Button(
-                colors = customButtonColors(),
+            CustomButton(
                 onClick = onDismiss
-            ) {
-                Text("Cancel")
-            }
+            , text = "Cancel")
         }
     )
 }
@@ -210,41 +270,40 @@ fun Hint(
     Modifier.padding(20.dp)
     Card(
         shape = RoundedCornerShape(16.dp), // Set the round shape here
-        colors = CardDefaults.cardColors(lightgray), // Set the container color here
+        colors = CardDefaults.cardColors(colorScheme.secondary), // Set the container color here
         modifier = Modifier
             .clickable(onClick = { onExpandChange(!isExpanded) })
-            .padding(all = 8.dp)
-            .border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+            .padding(all = 0.dp)
+            .border(BorderStroke(2.dp, colorScheme.tertiary), shape = RoundedCornerShape(16.dp)),
     ) {
         Row(
             modifier = Modifier
-                .padding(all = 8.dp) // Padding inside the Card
+                .padding(all = 8.dp), // Padding inside the Card
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             if(iconUsed) {
                 Icon(
                     imageVector = icon,
                     contentDescription = "Info",
                     modifier = Modifier.padding(horizontal = 0.dp),
-                    tint = Color.White
+                    tint = colorScheme.tertiary
                 )
                 Text(
-                    color = Color.White,
+                    color = colorScheme.tertiary,
                     text = displayText,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = hintText,
                     modifier = Modifier.padding(horizontal = 10.dp)
                 )
             }
             else {
 
                 Text(
-                    color = Color.White,
+                    color = colorScheme.tertiary,
                     text = displayText,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = hintText,
                     modifier = Modifier.padding(horizontal = 10.dp)
                 )
             }
-
-
         }
     }
 }
@@ -276,8 +335,9 @@ fun ModeCard(
                 Text(
                     text = mode,
                     style = TextStyle(
+                        fontFamily = montserratFontFamily,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.SemiBold
                     ),
                     modifier = Modifier.padding(16.dp)
                 )
@@ -303,21 +363,20 @@ fun WordManagementDialog(
     // Dialog UI to manage the word (delete or update)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Manage Word") },
+        title = { Text("Manage Word", fontFamily = montserratFontFamily) },
         text = {
             Column {
                 TextField(
                     value = englishWord,
                     onValueChange = { englishWord = it
-                        if(validateInput(englishWord, russianWord)){enableButton =true}},
+                        if(validateInput(englishWord, russianWord)){enableButton = true}},
                     label = { Text("English") }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
-                    colors = customTextFieldColors(),
                     value = russianWord,
                     onValueChange = { russianWord = it
-                        if(validateInput(englishWord, russianWord)){enableButton =true}},
+                        if(validateInput(englishWord, russianWord)){enableButton = true}},
                     label = { Text("Russian") }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -329,8 +388,8 @@ fun WordManagementDialog(
             }
         },
         confirmButton = {
-            Button(
-                colors = customButtonColors(),
+            CustomButton(
+                enabled = enableButton,
                 onClick = {
                 // Handle word update
                 onUpdate(
@@ -340,16 +399,12 @@ fun WordManagementDialog(
                         description = translationDescription
                     )
                 )
-            }) {
-                Text("Update")
-            }
+            }, text = "Update")
+
         },
         dismissButton = {
-            Button(
-                colors = customButtonColors(),
-                onClick = onDelete) {
-                Text("Delete")
-            }
+            CustomButton(
+                onClick = onDelete, text = "Delete")
         }
     )
 }
@@ -376,8 +431,8 @@ fun ImportWordsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.Black,
-        title = { Text("Manage Word") },
+        containerColor = colorScheme.primaryContainer,
+        title = { Text("Words import", fontFamily = montserratFontFamily) },
         text = {
             Column {
                 if (showInitialButtons) {
@@ -389,8 +444,7 @@ fun ImportWordsDialog(
                         },
                         label = { Text("Insert your copied text here") }
                     )
-                    Button(
-                        colors = customButtonColors(),
+                    CustomButton(
                         enabled = enableConfirmButton,
                         onClick = {
                             parsedList = stringParser(text)
@@ -410,10 +464,8 @@ fun ImportWordsDialog(
                             else {
                                 noWordsDialog = true
                             }
-                        }
-                    ) {
-                        Text("Confirm")
-                    }
+                        }, text = "Confirm")
+
                     if (noWordsDialog) {
                         AlertDialog(
                             text = {
@@ -421,11 +473,10 @@ fun ImportWordsDialog(
                                     Text("Data you entered is not proper", color = colorScheme.secondary, fontSize = 16.sp)
                                 } },
                             onDismissRequest = { noWordsDialog = false },
-                            confirmButton = { Button(
-                                colors = customButtonColors(),
-                                onClick = { noWordsDialog = false}){
-                                Text("Okay")
-                            }}
+                            confirmButton = { CustomButton(
+                                onClick = { noWordsDialog = false},
+                                text = "Okay")
+                            }
                         )
                     }
                 }
@@ -440,15 +491,15 @@ fun ImportWordsDialog(
                     issuesLeft = blankIds.size
                     Column(
                         modifier = Modifier
-                            .fillMaxHeight(0.6f)
-                            .padding(8.dp)
+                            .fillMaxHeight(0.4f)
+                            .padding(vertical = 8.dp)
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp)
                         ) {
-                            Text("Issues left: [[$currentBlankIndex] $issuesLeft ")
+                            Text("Issues left: $issuesLeft ")
                             Text("Word: $issueWord")
                             Text("Translation: $issueTranslation")
                             Text("Description: $issueDescription")
@@ -458,21 +509,78 @@ fun ImportWordsDialog(
                             value = newTranslation,
                             onValueChange = { newTranslation = it },
                             label = { Text("Enter new translation") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        blankIds.getOrNull(currentBlankIndex)?.let {
+                                            val isValidTranslation = newTranslation.trim().split(Regex("""\s+""")).let {
+                                                it.size == 1 || (it.size == 2 && it[0].contains('-'))
+                                            }
+                                            if(isValidTranslation) {
+                                                parsedList[blankIds[currentBlankIndex]].translation = newTranslation
+                                                newTranslation = ""
+                                                blankIds.removeAt(currentBlankIndex)
+                                                if (blankIds.isEmpty()) {
+                                                    enableButton = true
+                                                    showIssueResolver = false
+                                                }
+                                                else {
+                                                    if (currentBlankIndex >= blankIds.size) {
+                                                        currentBlankIndex--
+                                                    }
+                                                    issueWord = parsedList[blankIds[currentBlankIndex]].original
+                                                    issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
+                                                    issueDescription = parsedList[blankIds[currentBlankIndex]].description
+                                                    issuesLeft = blankIds.size
+                                                }
+                                            }
+                                            else{
+                                                noWordsDialog = true
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Default.Create,
+                                        contentDescription = "Send",
+                                        tint = colorScheme.primary
+                                    )
+                                }
+                            }
                         )
-                        Spacer(modifier = Modifier.height(32.dp))
+                        /*Spacer(modifier = Modifier.height(18.dp))
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Button(
+                            CustomButton(
+                                modifier = Modifier.padding(horizontal = 0.dp).height(35.dp),
+                                // .fillMaxHeight(0.3f),
+                                contentPadding = PaddingValues(vertical = 0.dp, horizontal = 20.dp),
                                 colors = customButtonColors(),
+                                onClick = {
+
+                                }, text =
+                                        "Delete word")
+                            VerticalDivider(Modifier.size(10.dp), color = Color.Transparent)
+                           CustomButton(
+                               modifier = Modifier.padding(horizontal = 0.dp).height(35.dp),
+                               // .fillMaxHeight(0.3f),
+                               contentPadding = PaddingValues(vertical = 0.dp, horizontal = 20.dp),
+                                colors = customButtonColors(),
+                                onClick = {
+
+                                }, text = "Set translation")
+                        }*/
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row {
+                            IconButton(
                                 onClick = {
                                     blankIds.getOrNull(currentBlankIndex)?.let {
                                         Log.d("Delete word", "Parsed list: $parsedList, blankIds: $blankIds, current index: $currentBlankIndex")
                                         parsedList.removeAt(
                                             blankIds[currentBlankIndex]
                                         )
-
                                         if (parsedList.isEmpty()) {
                                             enableButton = true
                                             showIssueResolver = false
@@ -482,10 +590,8 @@ fun ImportWordsDialog(
                                         if (blankIds.isEmpty()) {
                                             enableButton = true
                                             showIssueResolver = false
-
                                         }
                                         else {
-
                                             if (currentBlankIndex >= blankIds.size) {
                                                 currentBlankIndex -= 1
 
@@ -493,51 +599,18 @@ fun ImportWordsDialog(
                                             if (currentBlankIndex < 0) currentBlankIndex = 0
 
                                             issueWord = parsedList[blankIds[currentBlankIndex]].original
-                                           issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
-                                           issueDescription = parsedList[blankIds[currentBlankIndex]].description
+                                            issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
+                                            issueDescription = parsedList[blankIds[currentBlankIndex]].description
                                             issuesLeft = blankIds.size
                                         }
                                     }
-                                }
+                                },
                             ) {
-                                Text("Delete word", fontSize = 14.sp)
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete word"
+                                )
                             }
-                           Button(
-                                colors = customButtonColors(),
-                                onClick = {
-                                    blankIds.getOrNull(currentBlankIndex)?.let {
-                                        val isValidTranslation = newTranslation.trim().split(Regex("""\s+""")).let {
-                                            it.size == 1 || (it.size == 2 && it[0].contains('-'))
-                                        }
-                                        if(isValidTranslation) {
-                                            parsedList[blankIds[currentBlankIndex]].translation = newTranslation
-                                            newTranslation = ""
-                                            blankIds.removeAt(currentBlankIndex)
-                                            if (blankIds.isEmpty()) {
-                                                enableButton = true
-                                                showIssueResolver = false
-                                            }
-                                            else {
-                                                if (currentBlankIndex >= blankIds.size) {
-                                                    currentBlankIndex--
-                                                }
-                                                issueWord = parsedList[blankIds[currentBlankIndex]].original
-                                                issueTranslation = parsedList[blankIds[currentBlankIndex]].translation
-                                                issueDescription = parsedList[blankIds[currentBlankIndex]].description
-                                                issuesLeft = blankIds.size
-                                            }
-                                        }
-                                        else{
-                                            noWordsDialog = true
-                                        }
-                                    }
-                                }
-                            ) {
-                                Text("Set translation")
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row {
                             IconButton(
                                 onClick = {
                                     if (currentBlankIndex > 0) currentBlankIndex--
@@ -574,24 +647,17 @@ fun ImportWordsDialog(
             }
         },
         confirmButton = {
-            Button(
-                colors = customButtonColors(),
+            CustomButton(
                 enabled = enableButton,
                 onClick = {
                     onConfirm(parsedList)
                     onDismiss()
-                }
-            ) {
-                Text("Add new words")
-            }
+                },text ="Add new words")
         },
         dismissButton = {
-            Button(
-                colors = customButtonColors(),
+            CustomButton(
                 onClick = onDismiss
-            ) {
-                Text("Cancel")
-            }
+            ,text ="Cancel")
         }
     )
 }

@@ -9,7 +9,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
-import com.example.sigmaenglish.Database.DBType
 
 fun calculateGradientAlpha(lazyListState: LazyListState): Float {
     val totalItems = lazyListState.layoutInfo.totalItemsCount
@@ -47,7 +46,7 @@ fun stringParser(string: String): MutableList<TemplateWord> {
             val wordData = TemplateWord(
                 original.trim(),
                 translation,
-                if (description.isNotEmpty()) description else "not provided"
+                description.ifEmpty { "not provided" }
             )
             wordsList.add(wordData)
         }

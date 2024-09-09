@@ -30,20 +30,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -70,11 +76,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
@@ -85,6 +97,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.sigmaenglish.Database.DBType
 import com.example.sigmaenglish.navigation.convertWordsToJson
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
+import com.example.sigmaenglish.ui.theme.lightgray
+import com.example.sigmaenglish.ui.theme.standartText
 import com.example.sigmaenglish.viewModel.ViewModel
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
@@ -109,7 +123,7 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
                             .padding(8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Words list", modifier = Modifier.padding(vertical = 10.dp))
+                        Text("Words list", modifier = Modifier.padding(vertical = 10.dp), fontFamily = montserratFontFamily, fontWeight = FontWeight.SemiBold)
                         IconButton(onClick = {navController.navigate("start") {
                             popUpTo("start") { inclusive = true }
                         }}) {
@@ -132,6 +146,7 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
     ) { innerPadding ->
         Column(
             modifier = Modifier
+                .background(color = colorScheme.primary)
                 .padding(innerPadding)
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures { change, dragAmount ->
@@ -201,20 +216,94 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
                     }
                     // Divider line between rows
                     HorizontalDivider(thickness = 1.dp, color = Color.Gray)
+
                 }
             }
+            Surface(
+                shadowElevation = 2.dp,
+                shape = RoundedCornerShape(16.dp),
+                color = Color.Transparent,
+                modifier = Modifier
+                    .animateContentSize()
+                    .padding(all = 8.dp)
+            ) {
+            Card(
+                shape = RoundedCornerShape(16.dp), // Set the round shape here
+                colors = CardDefaults.cardColors(colorScheme.secondary), // Set the container color here
+                modifier = Modifier
+                    .clickable(onClick = { })
+                    .padding(all = 0.dp)
+                    .border(
+                        BorderStroke(2.dp, color = colorScheme.tertiary),
+                        shape = RoundedCornerShape(16.dp)
+                    ),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(all = 8.dp) // Padding inside the Card
+                ) {
+                        Text(
+                            color = colorScheme.tertiary,
+                            text = "display Text",
+                            style = TextStyle(
+                                fontFamily = montserratFontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                fontStyle = FontStyle.Normal,
+                                fontSize = 14.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 10.dp)
+                        )
+                    }
+
+                }
+            }
+            Button(
+                onClick = { /* Handle click */ },
+
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorScheme.tertiary.copy(alpha = 0.5f),
+                    contentColor = colorScheme.primaryContainer
+                ),
+                modifier = Modifier
+                    .width(200.dp)
+                    .border(
+                        BorderStroke(2.dp, color = colorScheme.tertiary),
+                        shape = RoundedCornerShape(220.dp)
+                    )
+            ) {
+                Text(
+                    "option",
+                    modifier = Modifier.fillMaxWidth().padding(3.dp),
+                    textAlign = TextAlign.Center,
+                    style = TextStyle(
+                        fontFamily = interFontFamily,
+                        fontWeight = FontWeight.Normal,
+                        fontStyle = FontStyle.Normal,
+                        fontSize = 18.sp
+                    )
+                )
+            }
+
         }
     }
 }
 
+
+
+    @Preview(showBackground = true)
+    @Composable
+    fun Preview() {
+        SigmaEnglishTheme {
+            StartScreen(navController = rememberNavController())
+        }
+    }
 @Preview(showBackground = true)
 @Composable
-fun Preview() {
+fun PreviewCard() {
     SigmaEnglishTheme {
-        StartScreen(navController = rememberNavController())
+
     }
 }
-
 @Preview(showBackground = true)
 @Composable
 fun PreviewWordListScreen() {
@@ -235,33 +324,204 @@ fun PreviewWordListScreen() {
 }
 
 @Composable
-@Preview
+@Preview(showBackground = true)
 fun ResultsPreview(){
-    val timeSpent = 10
-    val selectedType = "Standart"
-    val sampleWords: List<TestWord> = listOf(
-        TestWord(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
-        TestWord(english = "book", russian = "книга", description = "A written or printed work", false),
-        TestWord(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
-        TestWord(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
-        TestWord(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true),
-        TestWord(english = "book", russian = "книга", description = "A written or printed work", false),
-        TestWord(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
-        TestWord(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
-        TestWord(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true) ,
-        TestWord(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
-        TestWord(english = "book", russian = "книга", description = "A written or printed work", false),
-        TestWord(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
-        TestWord(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
-        TestWord(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true),
-        TestWord(english = "book", russian = "книга", description = "A written or printed work", false),
-        TestWord(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
-        TestWord(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
-        TestWord(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true) ,
-        TestWord(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
-        TestWord(english = "book", russian = "книга", description = "A written or printed work", false),
-        TestWord(english = "cat", russian = "кот", description = "A small domesticated carnivorous mammal", true),
-        TestWord(english = "dog", russian = "собака", description = "A domesticated carnivorous mammal", true),
-        TestWord(english = "elephant", russian = "слон", description = "A large mammal with a trunk", true)
-    )
+    SigmaEnglishTheme {
+
+
+        val timeSpent = 10
+        val selectedType = "Standart"
+        val sampleWords: List<TestWord> = listOf(
+            TestWord(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
+            TestWord(
+                english = "book",
+                russian = "книга",
+                description = "A written or printed work",
+                false
+            ),
+            TestWord(
+                english = "cat",
+                russian = "кот",
+                description = "A small domesticated carnivorous mammal",
+                true
+            ),
+            TestWord(
+                english = "dog",
+                russian = "собака",
+                description = "A domesticated carnivorous mammal",
+                true
+            ),
+            TestWord(
+                english = "elephant",
+                russian = "слон",
+                description = "A large mammal with a trunk",
+                true
+            ),
+            TestWord(
+                english = "book",
+                russian = "книга",
+                description = "A written or printed work",
+                false
+            ),
+            TestWord(
+                english = "cat",
+                russian = "кот",
+                description = "A small domesticated carnivorous mammal",
+                true
+            ),
+            TestWord(
+                english = "dog",
+                russian = "собака",
+                description = "A domesticated carnivorous mammal",
+                true
+            ),
+            TestWord(
+                english = "elephant",
+                russian = "слон",
+                description = "A large mammal with a trunk",
+                true
+            ),
+            TestWord(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
+            TestWord(
+                english = "book",
+                russian = "книга",
+                description = "A written or printed work",
+                false
+            ),
+            TestWord(
+                english = "cat",
+                russian = "кот",
+                description = "A small domesticated carnivorous mammal",
+                true
+            ),
+            TestWord(
+                english = "dog",
+                russian = "собака",
+                description = "A domesticated carnivorous mammal",
+                true
+            ),
+            TestWord(
+                english = "elephant",
+                russian = "слон",
+                description = "A large mammal with a trunk",
+                true
+            ),
+            TestWord(
+                english = "book",
+                russian = "книга",
+                description = "A written or printed work",
+                false
+            ),
+            TestWord(
+                english = "cat",
+                russian = "кот",
+                description = "A small domesticated carnivorous mammal",
+                true
+            ),
+            TestWord(
+                english = "dog",
+                russian = "собака",
+                description = "A domesticated carnivorous mammal",
+                true
+            ),
+            TestWord(
+                english = "elephant",
+                russian = "слон",
+                description = "A large mammal with a trunk",
+                true
+            ),
+            TestWord(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
+            TestWord(
+                english = "book",
+                russian = "книга",
+                description = "A written or printed work",
+                false
+            ),
+            TestWord(
+                english = "cat",
+                russian = "кот",
+                description = "A small domesticated carnivorous mammal",
+                true
+            ),
+            TestWord(
+                english = "dog",
+                russian = "собака",
+                description = "A domesticated carnivorous mammal",
+                true
+            ),
+            TestWord(
+                english = "elephant",
+                russian = "слон",
+                description = "A large mammal with a trunk",
+                true
+            )
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = colorScheme.primary)
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(17.dp))
+                    .border(
+                        BorderStroke(3.dp, colorScheme.secondary),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    items(sampleWords) { word ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                                fontSize = 20.sp,
+                                text = "${word.english} - ${word.russian}",
+                                color =
+                                colorScheme.primaryContainer
+                            //Color.Black
+                            )
+                            if (word.isCorrect) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = "success",
+                                    tint = Color.Green,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "failure",
+                                    tint = Color.Red,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 0.dp, horizontal = 2.dp)
+                        .fillMaxWidth()
+                        .height(20.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.5f)),
+                                startY = 0f,
+                                endY = 100f
+                            ),
+                            alpha = 1f
+                        )
+                )
+            }
+        }
+    }
 }

@@ -23,7 +23,8 @@ private val DarkColorSchemeGold = darkColorScheme(
     primary = GoldSchemeWhite,
     secondary = GoldSchemeBrown,
     tertiary = GoldSchemeYellow,
-    primaryContainer = GoldSchemeBlack
+    primaryContainer = GoldSchemeBlack,
+    background = GoldSchemeWhite
 )
 
 private val LightColorSchemeYellow = lightColorScheme(

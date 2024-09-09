@@ -1,17 +1,14 @@
 package com.example.sigmaenglish.main
 
 import android.annotation.SuppressLint
-import android.app.Application
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -49,7 +46,6 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
-import androidx.compose.material3.Typography
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -71,18 +67,18 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.sigmaenglish.Database.DBType
 import com.example.sigmaenglish.navigation.NavigationComponent
 import com.example.sigmaenglish.navigation.convertWordsToJson
+import com.example.sigmaenglish.ui.theme.PastelGreen
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
+import com.example.sigmaenglish.ui.theme.WrongRed
 import com.example.sigmaenglish.ui.theme.customText
 import com.example.sigmaenglish.ui.theme.customTitle
+import com.example.sigmaenglish.ui.theme.standartText
 import com.example.sigmaenglish.viewModel.ViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -101,11 +97,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SigmaEnglishTheme {
-                /*val viewModel: ViewModel = ViewModelProvider(
-                    this,
-                    ViewModelProvider.AndroidViewModelFactory.getInstance(application)
-                )[ViewModel::class.java]*/
-               // val viewModel: ViewModel = viewModel()
                 val viewModel: ViewModel by viewModels()
                 val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
                 NavigationComponent(viewModel)
@@ -116,7 +107,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun StartScreen(navController: NavHostController) {
-    SigmaEnglishTheme {
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -128,16 +119,11 @@ fun StartScreen(navController: NavHostController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("Start Screen", style = typography.headlineMedium, color = colorScheme.secondary)
-                Button(onClick = { navController.navigate("WordListScreen") }, colors = customButtonColors()) {
-                    Text("Words List")
-                }
-                Button(onClick = { navController.navigate("trainingMenu") }, colors = customButtonColors()) {
-                    Text("Training")
-                }
+                MyImage()
+                CustomButton(onClick = { navController.navigate("WordListScreen") }, text = "Words list")
+                CustomButton(onClick = { navController.navigate("trainingMenu") }, text = "Training")
             }
         }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -161,7 +147,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                             .padding(8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Words list", modifier = Modifier.padding(vertical = 10.dp))
+                        Text("Words list", modifier = Modifier.padding(vertical = 10.dp), fontFamily = montserratFontFamily, fontWeight = FontWeight.SemiBold)
                         Row {
                             IconButton(onClick = {
                                 importFromNotesDialog = true
@@ -183,9 +169,9 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                contentColor = colorScheme.tertiary,
+                contentColor = colorScheme.primary,
                 containerColor = colorScheme.secondary,
-                text = { Text("Add Word") },
+                text = { Text("Add Word", fontFamily = montserratFontFamily) },
                 icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
                 onClick = { showDialog = true },
             )
@@ -328,7 +314,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
 @Composable
 fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
     var selectedScreen by remember { mutableStateOf("") }
-    SigmaEnglishTheme {
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -337,7 +323,7 @@ fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Example cards for different modes
-            Text("Select a mode:", style = typography.headlineMedium, color = colorScheme.secondary)
+            Text("Select a mode:", style = typography.titleLarge, color = colorScheme.secondary)
             Spacer(modifier = Modifier.height(16.dp))
             Box(
                 modifier = Modifier.fillMaxWidth()
@@ -394,7 +380,7 @@ fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
                 }
             }
         }
-    }
+
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -408,7 +394,7 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.tertiary,
+                    containerColor = colorScheme.primaryContainer,
                     titleContentColor = colorScheme.secondary,
                 ),
                 title = {
@@ -429,7 +415,12 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
                                             }
                                         }
                                         .padding(horizontal = 25.dp),
-                                    color = if (selectedNumber == number) colorScheme.secondary else Color.Black,
+                                    color = if (selectedNumber == number) colorScheme.secondary else colorScheme.primary,
+                                    style = TextStyle(
+                                        fontFamily = interFontFamily,
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
                                 )
                             }
                         }
@@ -439,7 +430,7 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
         },
         bottomBar = {
             BottomAppBar(
-                containerColor = colorScheme.tertiary,
+                containerColor = colorScheme.primaryContainer,
                 contentColor = colorScheme.secondary,
             ) {
                 Box(
@@ -464,7 +455,7 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
                                     }
                                     .padding(horizontal = 25.dp),
                                 //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                                color = if (selectedType == type) colorScheme.secondary else Color.Black,
+                                color = if (selectedType == type) colorScheme.secondary else colorScheme.primary,
                             )
                         }
                     }
@@ -474,6 +465,7 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
     ) { innerPadding ->
         Column(
             modifier = Modifier
+                .background(colorScheme.primary)
                 .padding(innerPadding)
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures { _, dragAmount ->
@@ -495,6 +487,8 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
             ) {
                 Text(
                     text = "Start",
+                    style = typography.titleLarge,
+                    color = colorScheme.secondary,
                     modifier = Modifier.clickable {
                         val mockList : List<TestWord> = emptyList()
                         when (trainingType) {
@@ -520,11 +514,9 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
                 title = { Text("Alert") },
                 text = { Text("Number-specific mode is selected, unable to change the number") },
                 confirmButton = {
-                    Button(
-                        onClick = { showDialog = false }
-                    ) {
-                        Text("OK")
-                    }
+                    CustomButton(
+                        onClick = { showDialog = false }, text = "Ok"
+                    )
                 }
             )
         }
@@ -540,7 +532,7 @@ fun WordTrainingScreen(
     wordCount: Int,
     type: String,
     wordsRefresh: List<TestWord>? = null,
-    WordSourse: String
+    wordSourse: String
 ) {
     val (isHintExpanded, setHintExpanded) = remember { mutableStateOf(false) }
     val (isHintExpanded2, setHintExpanded2) = remember { mutableStateOf(false) }
@@ -565,10 +557,10 @@ fun WordTrainingScreen(
     LaunchedEffect(Unit) {
         delay(500L)
         words = when {
-            !wordsRefresh.isNullOrEmpty() && WordSourse == "Refresh" -> {
+            !wordsRefresh.isNullOrEmpty() && wordSourse == "Refresh" -> {
                 wordsRefresh
             }
-            WordSourse == "Classic" -> {
+            wordSourse == "Classic" -> {
                 val shuffledWords = wordList.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
                 shuffledWords.takeLast(wordLimit)
             }
@@ -609,10 +601,10 @@ fun WordTrainingScreen(
     }
 
     if (words.isEmpty()) {
-        if(WordSourse == "Classic" && viewModel.isInitialized){
+        if(wordSourse == "Classic" && viewModel.isInitialized){
             isSourceEmpty = viewModel.words.value.isNullOrEmpty()
         }
-        else if (WordSourse == "Mistakes" && viewModel.isInitialized){
+        else if (wordSourse == "Mistakes" && viewModel.isInitialized){
             isSourceEmpty = viewModel.wordsFailed.value.isNullOrEmpty()
         }
         CircularProgressIndicator(
@@ -620,23 +612,77 @@ fun WordTrainingScreen(
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         )
-        Log.d("Loading screen\"", "Words didn't initalize, source is set to $WordSourse, isSourceEmpty is $isSourceEmpty")
+        Log.d("Loading screen\"", "Words didn't initalize, source is set to $wordSourse, isSourceEmpty is $isSourceEmpty")
     }
     else {
-        SigmaEnglishTheme {
+
             Scaffold(
-                modifier = Modifier.pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount ->
-                        if (dragAmount < -50) { // Swipe right to left
-                            isAlertDialogEnabled = true
+                modifier = Modifier
+                    .background(colorScheme.primary)
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures { _, dragAmount ->
+                            if (dragAmount < -50) { // Swipe right to left
+                                isAlertDialogEnabled = true
+                            }
                         }
-                    }
-                },
+                    },
                 bottomBar = {
+                    Column {
+                    TextField(
+                        value = textfield,
+                        onValueChange = { textfield = it },
+                        label = { Text("Write your translation here", color = Color.White) },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    if (checkAnswer(
+                                            textfield,
+                                            words[currentWordIndex].russian
+                                        )
+                                    ) {
+                                        if (wordSourse == "failedTraining") {
+                                            viewModel.incrementTraining(words[currentWordIndex].english)
+                                        }
+                                        setHintExpanded(false)
+                                        if (currentWordIndex + 1 == words.size) {
+                                            navController.navigate(
+                                                "ResultsScreen/${elapsedTime / 1000}/$type/${
+                                                    convertWordsToJson(
+                                                        words
+                                                    )
+                                                }/Classic"
+                                            )
+                                        }
+                                        textfield = ""
+                                        onClick()
+                                    } else {
+                                        if (wordSourse == "failedTraining") {
+                                            viewModel.decrementTraining(words[currentWordIndex].english)
+                                        }
+                                        trigger = System.currentTimeMillis()
+                                        words[currentWordIndex].isCorrect = false
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send",
+                                    tint = colorScheme.tertiary
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        colors = TextFieldDefaults.colors(
+                            cursorColor = Color.White // Change cursor color to white
+                        )
+                    )
                     BottomAppBar(
-                        containerColor = colorScheme.tertiary,
+                        containerColor = colorScheme.primaryContainer,
                         contentColor = colorScheme.secondary
                     ) {
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -647,13 +693,13 @@ fun WordTrainingScreen(
                                 "Skip",
                                 modifier = Modifier.clickable(onClick = {
                                     if (currentWordIndex + 1 == words.size) {
-                                        if (WordSourse == "failedTraining") {
+                                        if (wordSourse == "failedTraining") {
                                             viewModel.decrementTraining(words[currentWordIndex].english)
                                         }
                                         words[currentWordIndex].isCorrect = false
                                         navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}/Classic")
                                     } else {
-                                        if (WordSourse == "failedTraining") {
+                                        if (wordSourse == "failedTraining") {
                                             viewModel.decrementTraining(words[currentWordIndex].english)
                                         }
                                         setHintExpanded(false)
@@ -661,9 +707,10 @@ fun WordTrainingScreen(
                                         onClick()
                                     }
                                 }),
-                                color = colorScheme.secondary
+                                color = colorScheme.primary
                             )
                         }
+                    }
                     }
                 }
             ) {
@@ -675,7 +722,8 @@ fun WordTrainingScreen(
                 Text(
                     "${currentWordIndex + 1}/${words.size}",
                     fontSize = 50.sp,
-                    modifier = Modifier.padding(26.dp),
+                    modifier = Modifier.padding(top = 40.dp).padding(horizontal = 26.dp),
+                    style = TextStyle(fontFamily = interFontFamily),
                     color = colorScheme.secondary
                 )
                 Column(
@@ -704,12 +752,12 @@ fun WordTrainingScreen(
 
                         Column(Modifier.padding(2.dp), horizontalAlignment = Alignment.CenterHorizontally){
                             Surface(
-                                shape = MaterialTheme.shapes.medium,
-                                shadowElevation = 1.dp,
-                                color = colorScheme.surface,
+                                shadowElevation = 2.dp,
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color.Transparent,
                                 modifier = Modifier
                                     .animateContentSize()
-                                    .padding(all = 16.dp)
+                                    .padding(all = 8.dp)
                             ){
                             Hint(
                             iconUsed = true,
@@ -721,12 +769,12 @@ fun WordTrainingScreen(
                             )
                             }
                             Surface(
-                                shape = MaterialTheme.shapes.medium,
-                                shadowElevation = 1.dp,
-                                color = colorScheme.surface,
+                                shadowElevation = 2.dp,
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color.Transparent,
                                 modifier = Modifier
                                     .animateContentSize()
-                                    .padding(all = 2.dp)
+                                    .padding(all = 8.dp)
                             ) {
                                 Hint(
                                     iconUsed = false,
@@ -738,91 +786,51 @@ fun WordTrainingScreen(
                                 )
                             }
                         }
-                    TextField(
-                        value = textfield,
-                        onValueChange = { textfield = it },
-                        label = { Text("Write your translation here", color = Color.White) },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = {
-                                    if (checkAnswer(textfield, words[currentWordIndex].russian)) {
-                                        if (WordSourse == "failedTraining") {
-                                            viewModel.incrementTraining(words[currentWordIndex].english)
-                                        }
-                                        setHintExpanded(false)
-                                        if (currentWordIndex + 1 == words.size) {
-                                            navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}/Classic")
-                                        }
-                                        textfield = ""
-                                        onClick()
-                                    } else {
-                                        if (WordSourse == "failedTraining") {
-                                            viewModel.decrementTraining(words[currentWordIndex].english)
-                                        }
-                                        trigger = System.currentTimeMillis()
-                                        words[currentWordIndex].isCorrect = false
-                                    }
-                                }
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = colorScheme.secondary)
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester),
-                        colors = TextFieldDefaults.colors(
-                            cursorColor = Color.White // Change cursor color to white
-                        )
-                    )
                 }
             }
             if (isAlertDialogEnabled) {
                 AlertDialog(
                     shape = RoundedCornerShape(16.dp),
                     tonalElevation = 8.dp,
-                    modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
-                    containerColor = colorScheme.tertiary,
+                    //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+                    containerColor = colorScheme.primaryContainer,
                     onDismissRequest = { isAlertDialogEnabled = false },
                     title = { Text("Are you sure?") },
                     text = {
                         Text("Are you sure you wanna close this window? Your progress will be lost.")
                     },
                     confirmButton = {
-                        Button(
-                            colors = customButtonColors(),
+                        CustomButton(
                             onClick = {
                                 navController.navigate("start") {
                                     popUpTo("start") { inclusive = true }
                                 }
-                            }) {
-                            Text("Yes")
-                        }
+                            },
+                            text = "Yes")
                     },
                     dismissButton = {
-                        Button(
-                            colors = customButtonColors(),
+                        CustomButton(
                             onClick = {
                                 isAlertDialogEnabled = false
-                            }) {
-                            Text("No")
-                        }
+                            },
+                            text = "No")
                     }
                 )
             }
-        }
+
     }
     if (isSourceEmpty) {
         AlertDialog(
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 8.dp,
-            modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
-            containerColor = colorScheme.tertiary,
+            //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+            containerColor = colorScheme.primaryContainer,
             onDismissRequest = { navController.navigate("start") {
                 popUpTo("start") { inclusive = true }
             }},
             title = { Text("No words to form training on!") },
             text = {
-                if(WordSourse == "Classic"){
+                if(wordSourse == "Classic"){
                     Text("To form a training list, you should first add some words.\n" +
                             " Would you like to be navigated to Word list screen to add some new words?")
                 }
@@ -834,27 +842,23 @@ fun WordTrainingScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    colors = customButtonColors(),
+                CustomButton(
                     onClick = {
                         navController.navigate("WordListScreen") {
                             popUpTo("WordListScreen") { inclusive = true }
                         }
-                    }) {
-                    Text("Move to Word list screen")
-                }
+                    },
+                    text = "Move to Word list screen")
             }
             ,
             dismissButton = {
-                Button(
-                    colors = customButtonColors(),
+                CustomButton(
                     onClick = {
                         navController.navigate("start") {
                             popUpTo("start") { inclusive = true }
                         }
-                    }) {
-                    Text("Move to start screen")
-                }
+                    },
+                    text ="Move to start screen")
             }
         )
     }
@@ -927,7 +931,7 @@ fun WordTrainingScreenZen(
         Log.d("Loading screen\"", "Words didn't initalize, isSourceEmpty is $isSourceEmpty")
     }
     else {
-        SigmaEnglishTheme {
+
             Scaffold(
                 modifier = Modifier.pointerInput(Unit) {
                     detectHorizontalDragGestures { _, dragAmount ->
@@ -937,56 +941,137 @@ fun WordTrainingScreenZen(
                     }
                 },
                 bottomBar = {
-                    BottomAppBar(
-                        containerColor = colorScheme.tertiary,
-                        contentColor = colorScheme.secondary
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp), // Adjust height as needed
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                Text(
-                                    "Skip",
-                                    modifier = Modifier.clickable(onClick = {
-                                        if (currentWordIndex + 1 == words.size) {
-                                            words[currentWordIndex].isCorrect = false
-                                            resultList = words.take(currentWordIndex + 1)
-                                            Log.d("ZenTraining", "Result list of learned words: $resultList")
-                                            navController.navigate("ResultsScreenZen/${elapsedTime / 1000}/$earnedScore/${convertWordsToJson(resultList)}")
-                                        } else {
-                                            if(firstTry){
-                                                earnedScore--
-                                            }
-                                            else{
-                                                firstTry = true
+                    Column {
+                        TextField(
+                            value = textfield,
+                            onValueChange = { textfield = it },
+                            label = { Text("Write your translation here", color = Color.White) },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        if (checkAnswer(
+                                                textfield,
+                                                words[currentWordIndex].russian
+                                            )
+                                        ) {
+                                            if (firstTry) {
+                                                earnedScore++
                                             }
                                             setHintExpanded(false)
-                                            words[currentWordIndex].isCorrect = false
+                                            if (currentWordIndex + 1 == words.size) {
+                                                viewModel.checkForUpdatesHS(earnedScore)
+                                                resultList = words.take(currentWordIndex + 1)
+                                                Log.d(
+                                                    "ZenTraining",
+                                                    "Result list of learned words: $resultList"
+                                                )
+                                                navController.navigate(
+                                                    "ResultsScreenZen/${elapsedTime / 1000}/$earnedScore/${
+                                                        convertWordsToJson(
+                                                            resultList
+                                                        )
+                                                    }"
+                                                )
+                                            }
+                                            textfield = ""
                                             onClick()
+                                            firstTry = true
+                                        } else {
+                                            if (firstTry) {
+                                                firstTry = false
+                                                earnedScore--
+                                            }
+                                            trigger = System.currentTimeMillis()
+                                            words[currentWordIndex].isCorrect = false
                                             textfield = ""
                                         }
-                                    }),
-                                    color = colorScheme.secondary
-                                )
-                                VerticalDivider(color = Color.Black, thickness = 3.dp, modifier = Modifier.padding(horizontal = 16.dp))
-                                Text(
-                                    "Finish",
-                                    modifier = Modifier.clickable(onClick =
-                                    {
-                                        words[currentWordIndex].isCorrect = false
-                                        earnedScore--
-                                        resultList = words.take(currentWordIndex + 1)
-                                        Log.d("ZenTraining", "Result list of learned words: $resultList")
-                                            navController.navigate("ResultsScreenZen/${elapsedTime / 1000}/$earnedScore/${convertWordsToJson(resultList)}")
-                                    }),
-                                    color = colorScheme.secondary
-                                )
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "Send",
+                                        tint = colorScheme.tertiary
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester),
+                            colors = TextFieldDefaults.colors(
+                                cursorColor = Color.White // Change cursor color to white
+                            )
+                        )
+                        BottomAppBar(
+                            containerColor = colorScheme.primaryContainer,
+                            contentColor = colorScheme.primary
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp), // Adjust height as needed
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        "Skip",
+                                        modifier = Modifier.clickable(onClick = {
+                                            if (currentWordIndex + 1 == words.size) {
+                                                words[currentWordIndex].isCorrect = false
+                                                resultList = words.take(currentWordIndex + 1)
+                                                Log.d(
+                                                    "ZenTraining",
+                                                    "Result list of learned words: $resultList"
+                                                )
+                                                navController.navigate(
+                                                    "ResultsScreenZen/${elapsedTime / 1000}/$earnedScore/${
+                                                        convertWordsToJson(
+                                                            resultList
+                                                        )
+                                                    }"
+                                                )
+                                            } else {
+                                                if (firstTry) {
+                                                    earnedScore--
+                                                } else {
+                                                    firstTry = true
+                                                }
+                                                setHintExpanded(false)
+                                                words[currentWordIndex].isCorrect = false
+                                                onClick()
+                                                textfield = ""
+                                            }
+                                        })
+                                    )
+                                    VerticalDivider(
+                                        color = colorScheme.secondary,
+                                        thickness = 3.dp,
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                    Text(
+                                        "Finish",
+                                        modifier = Modifier.clickable(onClick =
+                                        {
+                                            words[currentWordIndex].isCorrect = false
+                                            earnedScore--
+                                            resultList = words.take(currentWordIndex + 1)
+                                            Log.d(
+                                                "ZenTraining",
+                                                "Result list of learned words: $resultList"
+                                            )
+                                            navController.navigate(
+                                                "ResultsScreenZen/${elapsedTime / 1000}/$earnedScore/${
+                                                    convertWordsToJson(
+                                                        resultList
+                                                    )
+                                                }"
+                                            )
+                                        })
+                                    )
+                                }
                             }
                         }
                     }
@@ -998,15 +1083,16 @@ fun WordTrainingScreenZen(
                     }
                 }
                 Text(
-                    "Current score: ${earnedScore}\n" +
-                            "Total count of words: ${words.size}",
+                    "Score: ${earnedScore}\n" +
+                            "Words count: ${words.size}",
                     fontSize = 24.sp,
                     modifier = Modifier
                         .padding(bottom = 26.dp)
                         .padding(horizontal = 26.dp)
                         .padding(top = 50.dp),
                     color = colorScheme.secondary,
-                    lineHeight = 40.sp
+                    lineHeight = 40.sp,
+                    fontFamily = interFontFamily
                 )
                 Column(
                     modifier = Modifier
@@ -1034,12 +1120,12 @@ fun WordTrainingScreenZen(
 
                     Column(Modifier.padding(2.dp), horizontalAlignment = Alignment.CenterHorizontally){
                         Surface(
-                            shape = MaterialTheme.shapes.medium,
-                            shadowElevation = 1.dp,
-                            color = colorScheme.surface,
+                            shadowElevation = 2.dp,
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.Transparent,
                             modifier = Modifier
                                 .animateContentSize()
-                                .padding(all = 16.dp)
+                                .padding(all = 8.dp)
                         ){
                             Hint(
                                 iconUsed = true,
@@ -1051,12 +1137,12 @@ fun WordTrainingScreenZen(
                             )
                         }
                         Surface(
-                            shape = MaterialTheme.shapes.medium,
-                            shadowElevation = 1.dp,
-                            color = colorScheme.surface,
+                            shadowElevation = 2.dp,
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.Transparent,
                             modifier = Modifier
                                 .animateContentSize()
-                                .padding(all = 2.dp)
+                                .padding(all = 8.dp)
                         ) {
                             Hint(
                                 iconUsed = false,
@@ -1068,55 +1154,13 @@ fun WordTrainingScreenZen(
                             )
                         }
                     }
-                    TextField(
-                        value = textfield,
-                        onValueChange = { textfield = it },
-                        label = { Text("Write your translation here", color = Color.White) },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = {
-                                    if (checkAnswer(textfield, words[currentWordIndex].russian)) {
-                                        if(firstTry) {
-                                            earnedScore++
-                                        }
-                                        setHintExpanded(false)
-                                        if (currentWordIndex + 1 == words.size) {
-                                            viewModel.checkForUpdatesHS(earnedScore)
-                                            resultList = words.take(currentWordIndex + 1)
-                                            Log.d("ZenTraining", "Result list of learned words: $resultList")
-                                            navController.navigate("ResultsScreenZen/${elapsedTime / 1000}/$earnedScore/${convertWordsToJson(resultList)}")
-                                        }
-                                        textfield = ""
-                                        onClick()
-                                        firstTry = true
-                                    } else {
-                                        if(firstTry) {
-                                            firstTry = false
-                                            earnedScore--
-                                        }
-                                        trigger = System.currentTimeMillis()
-                                        words[currentWordIndex].isCorrect = false
-                                        textfield = ""
-                                    }
-                                }
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = colorScheme.secondary)
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester),
-                        colors = TextFieldDefaults.colors(
-                            cursorColor = Color.White // Change cursor color to white
-                        )
-                    )
                 }
             }
             if (isAlertDialogEnabled) {
                 AlertDialog(
                     shape = RoundedCornerShape(16.dp),
                     tonalElevation = 8.dp,
-                    modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+                    //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
                     containerColor = colorScheme.primaryContainer,
                     onDismissRequest = { isAlertDialogEnabled = false },
                     title = { Text("Are you sure?") },
@@ -1124,35 +1168,28 @@ fun WordTrainingScreenZen(
                         Text("Are you sure you wanna close this window? Your progress will be lost.")
                     },
                     confirmButton = {
-                        Button(
-                            colors = customButtonColors(),
+                        CustomButton(
                             onClick = {
                                 navController.navigate("start") {
                                     popUpTo("start") { inclusive = true }
                                 }
-                            }) {
-                            Text("Yes")
-                        }
+                            }, text = "Yes")
                     },
                     dismissButton = {
-                        Button(
-                            colors = customButtonColors(),
+                        CustomButton(
                             onClick = {
                                 isAlertDialogEnabled = false
-                            }) {
-                            Text("No")
-                        }
+                            }, text = "No")
                     }
                 )
             }
-        }
     }
     if (isSourceEmpty) {
         AlertDialog(
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 8.dp,
-            modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
-            containerColor = colorScheme.tertiary,
+            //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+            containerColor = colorScheme.primaryContainer,
             onDismissRequest = { navController.navigate("start") {
                 popUpTo("start") { inclusive = true }
             }},
@@ -1162,27 +1199,22 @@ fun WordTrainingScreenZen(
                             " Would you like to be navigated to Word list screen to add some new words?")
             },
             confirmButton = {
-                Button(
-                    colors = customButtonColors(),
+                CustomButton(
                     onClick = {
                         navController.navigate("WordListScreen") {
                             popUpTo("WordListScreen") { inclusive = true }
                         }
-                    }) {
-                    Text("Move to Word list screen")
-                }
+                    }, text ="Move to Word list screen")
+
             }
             ,
             dismissButton = {
-                Button(
-                    colors = customButtonColors(),
+                CustomButton(
                     onClick = {
                         navController.navigate("start") {
                             popUpTo("start") { inclusive = true }
                         }
-                    }) {
-                    Text("Move to start screen")
-                }
+                    }, text ="Move to start screen")
             }
         )
     }
@@ -1228,7 +1260,7 @@ fun WordTrainingScreenDescription(
     }
     LaunchedEffect(Unit) {
         delay(500L)
-        val shuffledWords = wordList.filter { it.description != "not provided" }.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
+        val shuffledWords = wordList.filter { it.description != "not provided" && it.description != "Not provided"}.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
         words = shuffledWords.takeLast(wordLimit)
 
         Log.d("WordTraining", "Words initialized $words")
@@ -1277,7 +1309,7 @@ fun WordTrainingScreenDescription(
         Log.d("Loading screen\"", "Words didn't initialize isSourceEmpty is $isSourceEmpty")
     }
     else {
-        SigmaEnglishTheme {
+
             Scaffold(
                 modifier = Modifier.pointerInput(Unit) {
                     detectHorizontalDragGestures { _, dragAmount ->
@@ -1288,13 +1320,13 @@ fun WordTrainingScreenDescription(
                 },
                 bottomBar = {
                     BottomAppBar(
-                        containerColor = colorScheme.tertiary,
+                        containerColor = colorScheme.primaryContainer,
                         contentColor = colorScheme.secondary
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp), // Adjust height as needed
+                                .height(56.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -1309,7 +1341,7 @@ fun WordTrainingScreenDescription(
                                         goToNewWord()
                                     }
                                 }),
-                                color = colorScheme.secondary
+                                color = colorScheme.primary
                             )
                         }
                     }
@@ -1318,8 +1350,11 @@ fun WordTrainingScreenDescription(
                 Text(
                     "${currentWordIndex + 1}/${words.size}",
                     fontSize = 50.sp,
-                    modifier = Modifier.padding(16.dp),
-                    color = colorScheme.secondary
+                    modifier = Modifier
+                        .padding(top = 32.dp)
+                        .padding(horizontal = 16.dp),
+                    color = colorScheme.secondary,
+                    style = TextStyle(fontFamily = interFontFamily)
                 )
                 Column(
                     modifier = Modifier
@@ -1343,11 +1378,12 @@ fun WordTrainingScreenDescription(
                         )
                     }
                         Surface(
-                            shape = MaterialTheme.shapes.medium,
-                            color = colorScheme.surface,
+                            shadowElevation = 2.dp,
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.Transparent,
                             modifier = Modifier
                                 .animateContentSize()
-                                .padding(all = 16.dp)
+                                .padding(all = 8.dp)
                         ){
                             Hint(
                                 iconUsed = true,
@@ -1375,9 +1411,9 @@ fun WordTrainingScreenDescription(
                             @Composable
                             fun getButtonColor(option: String): Color {
                                 return when {
-                                    showResults == true && option == rightAnswer -> Color.Green
-                                    wrongAnswers.contains(option) -> Color.Red
-                                    else -> colorScheme.secondary
+                                    showResults == true && option == rightAnswer -> PastelGreen
+                                    wrongAnswers.contains(option) -> WrongRed
+                                    else -> colorScheme.primaryContainer
                                 }
                             }
                             val buttonColors = options.map { option ->
@@ -1407,18 +1443,31 @@ fun WordTrainingScreenDescription(
                             }
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.padding(top = 48.dp)
                                 ) {
                                     options.forEachIndexed { index, option ->
                                         Button(
                                             onClick = { onClick(option) },
-                                            colors = ButtonDefaults.buttonColors(contentColor = buttonColors[index]),
-                                            modifier = Modifier.width(200.dp)
+                                            shape = RoundedCornerShape(16.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = colorScheme.tertiary.copy(alpha = 0.5f), contentColor = buttonColors[index]),
+                                            modifier = Modifier
+                                                .width(200.dp)
+                                               // .border(
+                                              //      BorderStroke(1.dp, color = colorScheme.secondary),
+                                              //      shape = RoundedCornerShape(220.dp)
+                                               // )
                                         ) {
                                             Text(
                                                 option,
-                                                modifier = Modifier.fillMaxWidth(),
-                                                textAlign = TextAlign.Center
+                                                modifier = Modifier.fillMaxWidth().padding(3.dp),
+                                                textAlign = TextAlign.Center,
+                                                style = TextStyle(
+                                                    fontFamily = interFontFamily,
+                                                    fontWeight = FontWeight.Normal,
+                                                    fontStyle = FontStyle.Normal,
+                                                    fontSize = 18.sp
+                                                )
                                             )
 
                                         }
@@ -1433,43 +1482,38 @@ fun WordTrainingScreenDescription(
                 AlertDialog(
                     shape = RoundedCornerShape(16.dp),
                     tonalElevation = 8.dp,
-                    modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
-                    containerColor = colorScheme.tertiary,
+                    //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+                    containerColor = colorScheme.primaryContainer,
                     onDismissRequest = { isAlertDialogEnabled = false },
                     title = { Text("Are you sure?") },
                     text = {
                         Text("Are you sure you wanna close this window? Your progress will be lost.")
                     },
                     confirmButton = {
-                        Button(
-                            colors = customButtonColors(),
+                        CustomButton(
                             onClick = {
                                 navController.navigate("start") {
                                     popUpTo("start") { inclusive = true }
                                 }
-                            }) {
-                            Text("Yes")
-                        }
+                            }, text = "Yes")
+
                     },
                     dismissButton = {
-                        Button(
-                            colors = customButtonColors(),
+                        CustomButton(
                             onClick = {
                                 isAlertDialogEnabled = false
-                            }) {
-                            Text("No")
-                        }
+                            }, text ="No")
                     }
                 )
             }
-        }
+
     }
     if (isSourceEmpty) {
         AlertDialog(
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 8.dp,
-            modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
-            containerColor = colorScheme.tertiary,
+            //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+            containerColor = colorScheme.primaryContainer,
             onDismissRequest = { navController.navigate("start") {
                 popUpTo("start") { inclusive = true }
             }},
@@ -1479,27 +1523,21 @@ fun WordTrainingScreenDescription(
                             " Would you like to be navigated to Word list screen to add some new words?")
             },
             confirmButton = {
-                Button(
-                    colors = customButtonColors(),
+                CustomButton(
                     onClick = {
                         navController.navigate("WordListScreen") {
                             popUpTo("WordListScreen") { inclusive = true }
                         }
-                    }) {
-                    Text("Move to Word list screen")
-                }
+                    }, text = "Move to Word list screen")
             }
             ,
             dismissButton = {
-                Button(
-                    colors = customButtonColors(),
+                CustomButton(
                     onClick = {
                         navController.navigate("start") {
                             popUpTo("start") { inclusive = true }
                         }
-                    }) {
-                    Text("Move to start screen")
-                }
+                    }, text ="Move to start screen")
             }
         )
     }
@@ -1560,7 +1598,7 @@ fun ResultsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(all = 8.dp),
+                        .padding(vertical = 8.dp, horizontal = 48.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     if(selectedMode != "Description") {
@@ -1624,11 +1662,13 @@ fun ResultsScreen(
                     .padding(vertical = 16.dp),
                 textAlign = TextAlign.Center,
                 text = "Results:\n",
+                color = colorScheme.secondary,
+                style = standartText
             )
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(17.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .border(
                         BorderStroke(3.dp, colorScheme.secondary),
                         shape = RoundedCornerShape(16.dp)
@@ -1648,8 +1688,10 @@ fun ResultsScreen(
                         ) {
                             Text(
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
-                                fontSize = 20.sp,
-                                text = "${word.english} - ${word.russian}"
+                                text = "${word.english} - ${word.russian}",
+                                color = colorScheme.primaryContainer,
+                                style = standartText,
+                                fontSize = 20.sp
                             )
                             if (word.isCorrect) {
                                 Icon(
@@ -1677,7 +1719,10 @@ fun ResultsScreen(
                         .align(Alignment.BottomCenter)
                         .background(
                             brush = Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.5f)),
+                                colors = listOf(
+                                    Color.Transparent,
+                                    colorScheme.secondary.copy(alpha = 0.5f)
+                                ),
                                 startY = 0f,
                                 endY = 100f
                             ),
@@ -1701,10 +1746,12 @@ fun ResultsScreen(
                     // First Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
                     ) {
                             Text(
                                 modifier = Modifier
+                                    .padding(bottom = 16.dp)
                                     .padding(horizontal = 16.dp)
                                     .weight(1f),
                                 textAlign = TextAlign.Center,
@@ -1718,43 +1765,11 @@ fun ResultsScreen(
                                     }
                                 }
                             )
-                            Text(
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp)
-                                    .weight(1f),
-                                textAlign = TextAlign.Center,
-                                text = buildAnnotatedString {
-                                    withStyle(style = styleHeader) {
-                                        append("Accuracy\n")
-                                    }
-                                    withStyle(style = styleText) {
-                                        append(accuracy)
-                                    }
-                                }
-                            )
-                    }
-                    // Second Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+
                         Text(
                             modifier = Modifier
-                                .padding(vertical = 16.dp, horizontal = 10.dp)
-                                .weight(1f),
-                            textAlign = TextAlign.Center,
-                            text = buildAnnotatedString {
-                                withStyle(style = styleHeader) {
-                                    append("Test Type\n")
-                                }
-                                withStyle(style = styleText) {
-                                    append("$selectedType Words\n$selectedMode")
-                                }
-                            }
-                        )
-                        Text(
-                            modifier = Modifier
-                                .padding(vertical = 16.dp, horizontal = 10.dp)
+                                .padding(bottom = 16.dp)
+                                .padding(horizontal = 16.dp)
                                 .weight(1f),
                             textAlign = TextAlign.Center,
                             text = buildAnnotatedString {
@@ -1766,6 +1781,42 @@ fun ResultsScreen(
                                 }
                             }
                         )
+                    }
+                    // Second Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .weight(1f),
+                            textAlign = TextAlign.Center,
+                            text = buildAnnotatedString {
+                                withStyle(style = styleHeader) {
+                                    append("Test type\n")
+                                }
+                                withStyle(style = styleText) {
+                                    append("$selectedType Words\n$selectedMode")
+                                }
+                            }
+                        )
+                        Text(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .weight(1f),
+                            textAlign = TextAlign.Center,
+                            text = buildAnnotatedString {
+                                withStyle(style = styleHeader) {
+                                    append("Accuracy\n")
+                                }
+                                withStyle(style = styleText) {
+                                    append(accuracy)
+                                }
+                            }
+                        )
+
                     }
                 }
             }
@@ -1851,11 +1902,12 @@ fun ResultsScreenZen(
                     .padding(vertical = 16.dp),
                 textAlign = TextAlign.Center,
                 text = "Results:\n",
+                color = colorScheme.secondary
             )
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(17.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .border(
                         BorderStroke(3.dp, colorScheme.secondary),
                         shape = RoundedCornerShape(16.dp)
@@ -1876,7 +1928,8 @@ fun ResultsScreenZen(
                             Text(
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
                                 fontSize = 20.sp,
-                                text = "${word.english} - ${word.russian}"
+                                text = "${word.english} - ${word.russian}",
+                                color = colorScheme.primaryContainer
                             )
                             if (word.isCorrect) {
                                 Icon(
@@ -1904,7 +1957,10 @@ fun ResultsScreenZen(
                         .align(Alignment.BottomCenter)
                         .background(
                             brush = Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.5f)),
+                                colors = listOf(
+                                    Color.Transparent,
+                                    colorScheme.secondary.copy(alpha = 0.5f)
+                                ),
                                 startY = 0f,
                                 endY = 100f
                             ),
@@ -1933,21 +1989,22 @@ fun ResultsScreenZen(
                     ) {
                         Text(
                             modifier = Modifier
+                                .padding(bottom = 16.dp)
                                 .padding(horizontal = 16.dp)
                                 .weight(1f),
                             textAlign = TextAlign.Center,
                             text = buildAnnotatedString {
                                 withStyle(style = styleHeader) {
-                                    append("Words\n")
+                                    append("Test type\n")
                                 }
-
                                 withStyle(style = styleText) {
-                                    append("$wordCount")
+                                    append("Zen")
                                 }
                             }
                         )
                         Text(
                             modifier = Modifier
+                                .padding(bottom = 16.dp)
                                 .padding(horizontal = 16.dp)
                                 .weight(1f),
                             textAlign = TextAlign.Center,
@@ -1968,21 +2025,24 @@ fun ResultsScreenZen(
                     ) {
                         Text(
                             modifier = Modifier
-                                .padding(vertical = 16.dp, horizontal = 10.dp)
+                                .padding(bottom = 16.dp)
+                                .padding(horizontal = 16.dp)
                                 .weight(1f),
                             textAlign = TextAlign.Center,
                             text = buildAnnotatedString {
                                 withStyle(style = styleHeader) {
-                                    append("Test Type\n")
+                                    append("Words\n")
                                 }
+
                                 withStyle(style = styleText) {
-                                    append("Zen")
+                                    append("$wordCount")
                                 }
                             }
                         )
                         Text(
                             modifier = Modifier
-                                .padding(vertical = 16.dp, horizontal = 10.dp)
+                                .padding(bottom = 16.dp)
+                                .padding(horizontal = 16.dp)
                                 .weight(1f),
                             textAlign = TextAlign.Center,
                             text = buildAnnotatedString {
@@ -2001,7 +2061,7 @@ fun ResultsScreenZen(
                     ) {
                         Text(
                             modifier = Modifier
-                                .padding(vertical = 16.dp, horizontal = 10.dp)
+                                .padding(horizontal = 16.dp)
                                 .weight(1f),
                             textAlign = TextAlign.Center,
                             text = buildAnnotatedString {
@@ -2015,12 +2075,12 @@ fun ResultsScreenZen(
                         )
                         Text(
                             modifier = Modifier
-                                .padding(vertical = 16.dp, horizontal = 10.dp)
+                                .padding(horizontal = 16.dp)
                                 .weight(1f),
                             textAlign = TextAlign.Center,
                             text = buildAnnotatedString {
                                 withStyle(style = styleHeader) {
-                                    append("Highest Score\n")
+                                    append("Highest score\n")
                                 }
                                 withStyle(style = styleText) {
                                     append("${highestScore} points")
