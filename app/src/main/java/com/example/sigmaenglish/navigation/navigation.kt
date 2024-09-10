@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.sigmaenglish.main.ResultsScreen
 import com.example.sigmaenglish.main.ResultsScreenZen
+import com.example.sigmaenglish.main.ScreenGuide
 import com.example.sigmaenglish.main.SettingsScreen
 import com.example.sigmaenglish.main.StartScreen
 import com.example.sigmaenglish.main.TrainingMenu
@@ -36,6 +37,7 @@ fun NavigationComponent(viewModel: ViewModel) {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "start") {
         composable("start") { StartScreen(navController) }
+        composable("guide") { ScreenGuide(navController) }
         composable("WordListScreen") { WordListScreen(viewModel, navController) }
         composable("trainingMenu") { TrainingMenu(viewModel, navController) }
         composable(

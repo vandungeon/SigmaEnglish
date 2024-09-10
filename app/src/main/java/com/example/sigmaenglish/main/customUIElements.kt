@@ -1,20 +1,16 @@
 package com.example.sigmaenglish.main
 
 import android.util.Log
-import android.widget.Button
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,7 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -37,13 +33,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -58,24 +53,31 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sigmaenglish.Database.DBType
 import com.example.sigmaenglish.R
-import com.example.sigmaenglish.navigation.convertWordsToJson
+import com.example.sigmaenglish.ui.theme.GoldSchemeWhite
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
-import com.example.sigmaenglish.ui.theme.lightgray
 import com.example.sigmaenglish.viewModel.ViewModel
-import com.example.sigmaenglish.ui.theme.GoldSchemeBrown
-import com.example.sigmaenglish.ui.theme.GoldSchemeGray
-import com.example.sigmaenglish.ui.theme.Typography
+import com.example.sigmaenglish.ui.theme.customText
+import com.example.sigmaenglish.ui.theme.customTitle
+import com.example.sigmaenglish.ui.theme.dialogMain
 import com.example.sigmaenglish.ui.theme.hintText
+import com.example.sigmaenglish.ui.theme.interFontFamily
+import com.example.sigmaenglish.ui.theme.montserratFontFamily
 import com.example.sigmaenglish.ui.theme.standartText
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun MyImage() {
@@ -86,29 +88,97 @@ fun MyImage() {
         modifier = Modifier.size(150.dp)
     )
 }
-val montserratFontFamily = FontFamily(
-    Font(R.font.montserrat_black, FontWeight.Black),
-    Font(R.font.montserrat_black_italic, FontWeight.Black, FontStyle.Italic),
-    Font(R.font.montserrat_bold, FontWeight.Bold),
-    Font(R.font.montserrat_bold_italic, FontWeight.Bold, FontStyle.Italic),
-    Font(R.font.montserrat_extra_bold, FontWeight.ExtraBold),
-    Font(R.font.montserrat_extra_bold_italic, FontWeight.ExtraBold, FontStyle.Italic),
-    Font(R.font.montserrat_extra_light, FontWeight.ExtraLight),
-    Font(R.font.montserrat_extra_light_italic, FontWeight.ExtraLight, FontStyle.Italic),
-    Font(R.font.montserrat_italic, FontWeight.Normal, FontStyle.Italic),
-    Font(R.font.montserrat_light, FontWeight.Light),
-    Font(R.font.montserrat_light_italic, FontWeight.Light, FontStyle.Italic),
-    Font(R.font.montserrat_medium, FontWeight.Medium),
-    Font(R.font.montserrat_medium_italic, FontWeight.Medium, FontStyle.Italic),
-    Font(R.font.montserrat_regular, FontWeight.Normal),
-    Font(R.font.montserrat_semi_bold, FontWeight.SemiBold),
-    Font(R.font.montserrat_semi_bold_italic, FontWeight.SemiBold, FontStyle.Italic),
-    Font(R.font.montserrat_thin, FontWeight.Thin),
-    Font(R.font.montserrat_thin_italic, FontWeight.Thin, FontStyle.Italic)
+
+
+
+// Define data class for items with composable content
+data class ExpandableItem(
+    val title: String,
+    val content: @Composable (() -> Unit)? = null,
+    val children: List<ExpandableItem> = emptyList()
 )
-val interFontFamily = FontFamily(
-    Font(R.font.inter),
-    Font(R.font.inter_italic),
+
+// Define a composable for an expandable item
+@Composable
+fun ExpandableItemComposable(item: ExpandableItem, level: Int = 0) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        // Display the title
+        Text(
+            text = item.title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier
+                .padding(start = (level * 16).dp)
+                .clickable { expanded = !expanded }
+        )
+        // Show content if expanded
+        if (expanded) {
+            item.content?.let { content ->
+                content()
+            }
+            item.children.forEach {
+                ExpandableItemComposable(it, level + 1)
+            }
+        }
+    }
+}
+
+// Main composable to display the list
+@Composable
+fun ExpandableList(items: List<ExpandableItem>) {
+    LazyColumn(
+        contentPadding = PaddingValues(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 16.dp)
+    ) {
+        items(items) { item ->
+            ExpandableItemComposable(item)
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewExpandableList() {
+    val items = listOf(
+        ExpandableItem(
+            title = "1 - Press here",
+            content = {
+                Text(text = "Content for 1", style = typography.bodyMedium)
+            },
+            children = listOf(
+                ExpandableItem(
+                    title = "2",
+                    content = {
+                        Text(text = "Content for 2", style = typography.bodyMedium)
+                    },
+                    children = listOf(
+                        ExpandableItem(title = "2-a", content = { ContentA() }),
+                        ExpandableItem(title = "2-b", content = { ContentB() }),
+                        ExpandableItem(title = "2-c", content = { Text(text = "This is content for 2-c") }),
+                        ExpandableItem(title = "2-d", content = { Text(text = "This is content for 2-d") })
+                    )
+                ),
+                ExpandableItem(title = "3-a", content = { Text(text = "Content for 3-a") })
+            )
+        )
+    )
+    MaterialTheme {
+        ExpandableList(items)
+    }
+}
+
+
+val styleHeader = customTitle.toSpanStyle()
+val styleText = customText.toSpanStyle()
+
+val dialogHeader = TextStyle(
+    fontFamily = montserratFontFamily,
+    color =  GoldSchemeWhite,
+    fontWeight = FontWeight.W400,
+    fontSize = 24.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.5.sp
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -209,7 +279,7 @@ fun AddWordDialog(viewModel: ViewModel,
     AlertDialog(
         containerColor = colorScheme.primaryContainer,
         onDismissRequest = onDismiss,
-        title = { Text("Add new word", color = colorScheme.primary, fontFamily = montserratFontFamily) },
+        title = { Text("Add new word", style = dialogHeader) },
         text = {
             Column {
                 TextField(
@@ -363,7 +433,7 @@ fun WordManagementDialog(
     // Dialog UI to manage the word (delete or update)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Manage Word", fontFamily = montserratFontFamily) },
+        title = { Text("Manage Word", style = dialogHeader) },
         text = {
             Column {
                 TextField(
@@ -428,11 +498,38 @@ fun ImportWordsDialog(
     fun validateInput(eng: String): Boolean {
         return eng.isNotEmpty()
     }
+    val code = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = colorScheme.primaryContainer,
-        title = { Text("Words import", fontFamily = montserratFontFamily) },
+        title = {
+            Column {
+                // Header text
+                Text(
+                    "Import from notes",
+                    style = dialogHeader
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                // Main body text
+                Text(
+                    "Enter your data in format shown below. Translation should be 1 word long, description from 0 to how much needed:",
+                    style = dialogMain
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                // Code-style text
+                Text(
+                    "Word - Translation - Description",
+                    style = code
+                )
+            }
+
+        },
         text = {
             Column {
                 if (showInitialButtons) {
@@ -442,35 +539,45 @@ fun ImportWordsDialog(
                             text = it
                             enableConfirmButton = validateInput(text)
                         },
-                        label = { Text("Insert your copied text here") }
-                    )
-                    CustomButton(
-                        enabled = enableConfirmButton,
-                        onClick = {
-                            parsedList = stringParser(text)
-                            text = ""
-                            enableConfirmButton = false
+                        label = { Text("Insert copied text here") },
+                        trailingIcon = {
+                            if (enableConfirmButton) {
+                                IconButton(
+                                    onClick = {
+                                        parsedList = stringParser(text)
+                                        text = ""
+                                        enableConfirmButton = false
 
-                            blankIds = checkForBlanks(parsedList).toMutableList()
-                            if(parsedList.isNotEmpty()) {
-                                if (blankIds.isEmpty()) {
-                                    showInitialButtons = false
-                                    enableButton = true
-                                } else {
-                                    showIssueResolver = true
-                                    showInitialButtons = false
+                                        blankIds = checkForBlanks(parsedList).toMutableList()
+                                        if (parsedList.isNotEmpty()) {
+                                            if (blankIds.isEmpty()) {
+                                                showInitialButtons = false
+                                                enableButton = true
+                                            } else {
+                                                showIssueResolver = true
+                                                showInitialButtons = false
+                                            }
+                                        } else {
+                                            noWordsDialog = true
+                                        }
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check, // Check mark icon
+                                        contentDescription = "Confirm",
+                                        tint = colorScheme.primary
+                                    )
                                 }
                             }
-                            else {
-                                noWordsDialog = true
-                            }
-                        }, text = "Confirm")
+                        }
+                    )
+
 
                     if (noWordsDialog) {
                         AlertDialog(
                             text = {
                                 Column {
-                                    Text("Data you entered is not proper", color = colorScheme.secondary, fontSize = 16.sp)
+                                    Text("Data you entered is not proper", style = dialogMain)
                                 } },
                             onDismissRequest = { noWordsDialog = false },
                             confirmButton = { CustomButton(

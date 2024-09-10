@@ -97,7 +97,9 @@ import androidx.navigation.compose.rememberNavController
 import com.example.sigmaenglish.Database.DBType
 import com.example.sigmaenglish.navigation.convertWordsToJson
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
+import com.example.sigmaenglish.ui.theme.interFontFamily
 import com.example.sigmaenglish.ui.theme.lightgray
+import com.example.sigmaenglish.ui.theme.montserratFontFamily
 import com.example.sigmaenglish.ui.theme.standartText
 import com.example.sigmaenglish.viewModel.ViewModel
 import kotlinx.coroutines.delay

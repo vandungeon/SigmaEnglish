@@ -69,6 +69,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.sigmaenglish.Database.DBType
+import com.example.sigmaenglish.navigation.GuideChapters
+import com.example.sigmaenglish.navigation.GuideChapters.ContentA
+import com.example.sigmaenglish.navigation.GuideChapters.ContentB
 import com.example.sigmaenglish.navigation.NavigationComponent
 import com.example.sigmaenglish.navigation.convertWordsToJson
 import com.example.sigmaenglish.ui.theme.PastelGreen
@@ -76,6 +79,9 @@ import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
 import com.example.sigmaenglish.ui.theme.WrongRed
 import com.example.sigmaenglish.ui.theme.customText
 import com.example.sigmaenglish.ui.theme.customTitle
+import com.example.sigmaenglish.ui.theme.dialogMain
+import com.example.sigmaenglish.ui.theme.interFontFamily
+import com.example.sigmaenglish.ui.theme.montserratFontFamily
 import com.example.sigmaenglish.ui.theme.standartText
 import com.example.sigmaenglish.viewModel.ViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -107,7 +113,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun StartScreen(navController: NavHostController) {
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -122,8 +127,79 @@ fun StartScreen(navController: NavHostController) {
                 MyImage()
                 CustomButton(onClick = { navController.navigate("WordListScreen") }, text = "Words list")
                 CustomButton(onClick = { navController.navigate("trainingMenu") }, text = "Training")
+                CustomButton(onClick = { navController.navigate("guide") }, text = "How to use")
             }
         }
+}
+@Composable
+fun ScreenGuide(navController: NavHostController) {
+    val items = listOf(
+        ExpandableItem(
+            title = "Main screen",
+            content = {
+                Text(text = "Content for 1", style = typography.bodyMedium)
+            },
+            children = listOf(
+                ExpandableItem(
+                    title = "2",
+                    content = {
+                        Text(text = "Content for 2", style = typography.bodyMedium)
+                    },
+                    children = listOf(
+                        ExpandableItem(title = "2-a", content = { ContentA() }),
+                        ExpandableItem(title = "2-b", content = { ContentB() }),
+                        ExpandableItem(title = "2-c", content = { Text(text = "This is content for 2-c") }),
+                        ExpandableItem(title = "2-d", content = { Text(text = "This is content for 2-d") })
+                    )
+                ),
+                ExpandableItem(title = "3-a", content = { Text(text = "Content for 3-a") })
+            )
+        ),
+        ExpandableItem(
+            title = "Main screen",
+            content = {
+                Text(text = "Content for 1", style = typography.bodyMedium)
+            },
+            children = listOf(
+                ExpandableItem(
+                    title = "2",
+                    content = {
+                        Text(text = "Content for 2", style = typography.bodyMedium)
+                    },
+                    children = listOf(
+                        ExpandableItem(title = "2-a", content = { ContentA() }),
+                    )
+                ),
+                ExpandableItem(title = "3-a", content = { Text(text = "Content for 3-a") })
+            )
+        ),
+        ExpandableItem(
+            title = "Main screen",
+            content = {
+                Text(text = "Content for 1", style = typography.bodyMedium)
+            },
+            children = listOf(
+                ExpandableItem(
+                    title = "2",
+                    content = {
+                        Text(text = "Content for 2", style = typography.bodyMedium)
+                    },
+                    children = listOf(
+                        ExpandableItem(title = "2-a", content = { ContentA() }),
+                    )
+                ),
+                ExpandableItem(title = "3-a", content = { Text(text = "Content for 3-a") })
+            )
+        )
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colorScheme.primary),
+        contentAlignment = Alignment.TopStart,
+        ) {
+        ExpandableList(items)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -511,8 +587,8 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
-                title = { Text("Alert") },
-                text = { Text("Number-specific mode is selected, unable to change the number") },
+                title = { Text("Alert", style = dialogHeader) },
+                text = { Text("Number-specific mode is selected, unable to change the number", style = dialogMain) },
                 confirmButton = {
                     CustomButton(
                         onClick = { showDialog = false }, text = "Ok"
@@ -644,6 +720,7 @@ fun WordTrainingScreen(
                                             viewModel.incrementTraining(words[currentWordIndex].english)
                                         }
                                         setHintExpanded(false)
+                                        setHintExpanded2(false)
                                         if (currentWordIndex + 1 == words.size) {
                                             navController.navigate(
                                                 "ResultsScreen/${elapsedTime / 1000}/$type/${
@@ -703,6 +780,7 @@ fun WordTrainingScreen(
                                             viewModel.decrementTraining(words[currentWordIndex].english)
                                         }
                                         setHintExpanded(false)
+                                        setHintExpanded2(false)
                                         words[currentWordIndex].isCorrect = false
                                         onClick()
                                     }
@@ -722,7 +800,9 @@ fun WordTrainingScreen(
                 Text(
                     "${currentWordIndex + 1}/${words.size}",
                     fontSize = 50.sp,
-                    modifier = Modifier.padding(top = 40.dp).padding(horizontal = 26.dp),
+                    modifier = Modifier
+                        .padding(top = 40.dp)
+                        .padding(horizontal = 26.dp),
                     style = TextStyle(fontFamily = interFontFamily),
                     color = colorScheme.secondary
                 )
@@ -795,9 +875,9 @@ fun WordTrainingScreen(
                     //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
                     containerColor = colorScheme.primaryContainer,
                     onDismissRequest = { isAlertDialogEnabled = false },
-                    title = { Text("Are you sure?") },
+                    title = { Text("Are you sure?", style = dialogHeader) },
                     text = {
-                        Text("Are you sure you wanna close this window? Your progress will be lost.")
+                        Text("Are you sure you wanna close this window? Your progress will be lost.", style = dialogMain)
                     },
                     confirmButton = {
                         CustomButton(
@@ -828,17 +908,17 @@ fun WordTrainingScreen(
             onDismissRequest = { navController.navigate("start") {
                 popUpTo("start") { inclusive = true }
             }},
-            title = { Text("No words to form training on!") },
+            title = { Text("No words to form training on!", style = dialogHeader) },
             text = {
                 if(wordSourse == "Classic"){
                     Text("To form a training list, you should first add some words.\n" +
-                            " Would you like to be navigated to Word list screen to add some new words?")
+                            " Would you like to be navigated to Word list screen to add some new words?", style = dialogMain)
                 }
                 else{
                     Text("You quite literally have no mistakes to correct, as of now.\n" +
                             " For now, keep up the good work!\nBut test to learn frequently" +
                             " failed words can't be generated," +
-                            " for obvious reasons")
+                            " for obvious reasons", style = dialogMain)
                 }
             },
             confirmButton = {
@@ -899,7 +979,6 @@ fun WordTrainingScreenZen(
     }
 
     var isAlertDialogEnabled by remember { mutableStateOf(false) }
-    val manager = viewModel.manager
     var textfield by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val isKeyboardVisible = rememberKeyboardVisibilityObserver()
@@ -958,6 +1037,7 @@ fun WordTrainingScreenZen(
                                                 earnedScore++
                                             }
                                             setHintExpanded(false)
+                                            setHintExpanded2(false)
                                             if (currentWordIndex + 1 == words.size) {
                                                 viewModel.checkForUpdatesHS(earnedScore)
                                                 resultList = words.take(currentWordIndex + 1)
@@ -1040,6 +1120,7 @@ fun WordTrainingScreenZen(
                                                     firstTry = true
                                                 }
                                                 setHintExpanded(false)
+                                                setHintExpanded2(false)
                                                 words[currentWordIndex].isCorrect = false
                                                 onClick()
                                                 textfield = ""
@@ -1163,9 +1244,9 @@ fun WordTrainingScreenZen(
                     //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
                     containerColor = colorScheme.primaryContainer,
                     onDismissRequest = { isAlertDialogEnabled = false },
-                    title = { Text("Are you sure?") },
+                    title = { Text("Are you sure?", style = dialogHeader) },
                     text = {
-                        Text("Are you sure you wanna close this window? Your progress will be lost.")
+                        Text("Are you sure you wanna close this window? Your progress will be lost.", style = dialogMain)
                     },
                     confirmButton = {
                         CustomButton(
@@ -1188,15 +1269,14 @@ fun WordTrainingScreenZen(
         AlertDialog(
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 8.dp,
-            //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
             containerColor = colorScheme.primaryContainer,
             onDismissRequest = { navController.navigate("start") {
                 popUpTo("start") { inclusive = true }
             }},
-            title = { Text("No words to form training on!") },
+            title = { Text("No words to form training on!", style = dialogHeader) },
             text = {
                     Text("To form a training list, you should first add some words.\n" +
-                            " Would you like to be navigated to Word list screen to add some new words?")
+                            " Would you like to be navigated to Word list screen to add some new words?", style = dialogMain)
             },
             confirmButton = {
                 CustomButton(
@@ -1460,7 +1540,9 @@ fun WordTrainingScreenDescription(
                                         ) {
                                             Text(
                                                 option,
-                                                modifier = Modifier.fillMaxWidth().padding(3.dp),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(3.dp),
                                                 textAlign = TextAlign.Center,
                                                 style = TextStyle(
                                                     fontFamily = interFontFamily,
@@ -1485,9 +1567,9 @@ fun WordTrainingScreenDescription(
                     //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
                     containerColor = colorScheme.primaryContainer,
                     onDismissRequest = { isAlertDialogEnabled = false },
-                    title = { Text("Are you sure?") },
+                    title = { Text("Are you sure?", style = dialogHeader) },
                     text = {
-                        Text("Are you sure you wanna close this window? Your progress will be lost.")
+                        Text("Are you sure you wanna close this window? Your progress will be lost.", style = dialogMain)
                     },
                     confirmButton = {
                         CustomButton(
@@ -1517,10 +1599,10 @@ fun WordTrainingScreenDescription(
             onDismissRequest = { navController.navigate("start") {
                 popUpTo("start") { inclusive = true }
             }},
-            title = { Text("Not enough words to form training on!") },
+            title = { Text("Not enough words to form training on!", style = dialogHeader) },
             text = {
                     Text("To form a training list, you should first add some words.\n" +
-                            " Would you like to be navigated to Word list screen to add some new words?")
+                            " Would you like to be navigated to Word list screen to add some new words?", style = dialogMain)
             },
             confirmButton = {
                 CustomButton(
@@ -1677,7 +1759,7 @@ fun ResultsScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                        .fillMaxHeight(),
                     state = scrollState
                 ) {
                     items(learnedWords) { word ->
@@ -1741,8 +1823,7 @@ fun ResultsScreen(
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-                    val styleHeader = customTitle.toSpanStyle()
-                    val styleText = customText.toSpanStyle()
+
                     // First Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1980,8 +2061,6 @@ fun ResultsScreenZen(
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-                    val styleHeader = customTitle.toSpanStyle()
-                    val styleText = customText.toSpanStyle()
                     // First Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),

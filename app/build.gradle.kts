@@ -83,7 +83,7 @@ dependencies {
     implementation(libs.androidx.core.ktx.v1131)
     implementation(libs.androidx.lifecycle.runtime.ktx.v270)
     implementation(libs.androidx.activity.compose.v190)
-    implementation(platform(libs.androidx.compose.bom.v20230800))
+    implementation(platform(libs.androidx.compose.bom.v20240600))
     implementation(libs.ui)
     implementation(libs.ui.graphics)
     implementation(libs.ui.tooling.preview)
