@@ -31,6 +31,12 @@ interface DataAccessObjects {
     @Query(" Delete FROM WordsFailed WHERE timesPractised>=5")
     fun checkForCompletedFails()
 
+    @Query(" Delete FROM WordsFailed WHERE english = :englishWord")
+    fun deleteMistakenWord(englishWord: String)
+
+    @Query("DELETE FROM WordsFailed")
+    fun deleteAllMistakenWords()
+
     @Query("UPDATE WordsFailed SET timesPractised = timesPractised + 1 WHERE english = :englishWord")
     suspend fun incrementTimesPractised(englishWord: String)
 

@@ -70,8 +70,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.sigmaenglish.Database.DBType
 import com.example.sigmaenglish.navigation.GuideChapters
-import com.example.sigmaenglish.navigation.GuideChapters.ContentA
-import com.example.sigmaenglish.navigation.GuideChapters.ContentB
+import com.example.sigmaenglish.navigation.GuideChapters.MainScreenGuide
 import com.example.sigmaenglish.navigation.NavigationComponent
 import com.example.sigmaenglish.navigation.convertWordsToJson
 import com.example.sigmaenglish.ui.theme.PastelGreen
@@ -124,7 +123,7 @@ fun StartScreen(navController: NavHostController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                MyImage()
+                LogoImage()
                 CustomButton(onClick = { navController.navigate("WordListScreen") }, text = "Words list")
                 CustomButton(onClick = { navController.navigate("trainingMenu") }, text = "Training")
                 CustomButton(onClick = { navController.navigate("guide") }, text = "How to use")
@@ -135,71 +134,89 @@ fun StartScreen(navController: NavHostController) {
 fun ScreenGuide(navController: NavHostController) {
     val items = listOf(
         ExpandableItem(
-            title = "Main screen",
+            title = "1. Main screen",
             content = {
-                Text(text = "Content for 1", style = typography.bodyMedium)
+                MainScreenGuide()
+            }
+        ),
+        ExpandableItem(
+            title = "2. Word List screen",
+            content = {
+                GuideChapters.WordListScreenGuide()
             },
             children = listOf(
                 ExpandableItem(
-                    title = "2",
+                    title = "2.1 Adding words",
                     content = {
-                        Text(text = "Content for 2", style = typography.bodyMedium)
-                    },
-                    children = listOf(
-                        ExpandableItem(title = "2-a", content = { ContentA() }),
-                        ExpandableItem(title = "2-b", content = { ContentB() }),
-                        ExpandableItem(title = "2-c", content = { Text(text = "This is content for 2-c") }),
-                        ExpandableItem(title = "2-d", content = { Text(text = "This is content for 2-d") })
-                    )
+                        GuideChapters.WordListScreenGuide_Add()
+                    }
                 ),
-                ExpandableItem(title = "3-a", content = { Text(text = "Content for 3-a") })
+                ExpandableItem(
+                    title = "2.2 Import words from notes", content = { GuideChapters.WordListScreenGuide_Import() })
             )
         ),
         ExpandableItem(
-            title = "Main screen",
+            title = "3. Word training guide",
             content = {
-                Text(text = "Content for 1", style = typography.bodyMedium)
+                GuideChapters.WordTrainingGuide()
             },
             children = listOf(
                 ExpandableItem(
-                    title = "2",
+                    title = "3.1 Classic mode",
                     content = {
-                        Text(text = "Content for 2", style = typography.bodyMedium)
-                    },
-                    children = listOf(
-                        ExpandableItem(title = "2-a", content = { ContentA() }),
-                    )
+                        GuideChapters.ClassicTrainingGuide()
+                    }
                 ),
-                ExpandableItem(title = "3-a", content = { Text(text = "Content for 3-a") })
+                ExpandableItem(
+                    title = "3.2 Mistakes practice",
+                    content = {
+                        GuideChapters.MistakesTrainingGuide()
+                    }
+                ),
+                ExpandableItem(
+                    title = "3.3 Description mode",
+                    content = {
+                        GuideChapters.DescriptionTrainingGuide()
+                    }
+                ),
+                ExpandableItem(
+                    title = "3.4 Zen mode",
+                    content = {
+                        GuideChapters.ZenTrainingGuide()
+                    }
+                ),
             )
         ),
         ExpandableItem(
-            title = "Main screen",
+            title = "4. Results",
             content = {
-                Text(text = "Content for 1", style = typography.bodyMedium)
-            },
-            children = listOf(
-                ExpandableItem(
-                    title = "2",
-                    content = {
-                        Text(text = "Content for 2", style = typography.bodyMedium)
-                    },
-                    children = listOf(
-                        ExpandableItem(title = "2-a", content = { ContentA() }),
-                    )
-                ),
-                ExpandableItem(title = "3-a", content = { Text(text = "Content for 3-a") })
-            )
+                GuideChapters.ResultsScreen()
+            }
         )
     )
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colorScheme.primary),
-        contentAlignment = Alignment.TopStart,
+    Column(modifier = Modifier.background(colorScheme.primary)) {
+        Text(
+            fontSize = 40.sp,
+            fontFamily = montserratFontFamily,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            textAlign = TextAlign.Center,
+            text = "How to use",
+            color = colorScheme.secondary,
+            style = standartText
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colorScheme.primary),
+            contentAlignment = Alignment.TopStart,
         ) {
-        ExpandableList(items)
+            ExpandableList(items)
+        }
     }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -209,6 +226,8 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
     var showDialog by remember { mutableStateOf(false) }
     var selectedWord by remember { mutableStateOf<DBType.Word?>(null) }
     var importFromNotesDialog by remember { mutableStateOf(false) }
+    var resetMistakesList by remember { mutableStateOf(false)}
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -225,6 +244,11 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                     ) {
                         Text("Words list", modifier = Modifier.padding(vertical = 10.dp), fontFamily = montserratFontFamily, fontWeight = FontWeight.SemiBold)
                         Row {
+                            IconButton(onClick = {
+                                resetMistakesList  = true
+                            }) {
+                                Icon(Icons.Default.Refresh, contentDescription = "Exit")
+                            }
                             IconButton(onClick = {
                                 importFromNotesDialog = true
                             }) {
@@ -321,9 +345,9 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                                             modifier = Modifier.padding(horizontal = 0.dp)
                                         )
                                         Text(
-                                            color = Color.Black,
+                                            color = colorScheme.primaryContainer,
+                                            style = standartText,
                                             text = word.description,
-                                            style = typography.bodyMedium,
                                             modifier = Modifier.padding(horizontal = 10.dp)
                                         )
                                     }
@@ -375,6 +399,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
             word = word,
             onDelete = {
                 viewModel.deleteWord(word)
+                viewModel.deleteMistakenWord(word.english)
                 selectedWord = null
             },
             onUpdate = { updatedWord ->
@@ -382,6 +407,34 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                 selectedWord = null
             },
             onDismiss = { selectedWord = null }
+        )
+    }
+    if (resetMistakesList) {
+        AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            tonalElevation = 8.dp,
+            //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
+            containerColor = colorScheme.primaryContainer,
+            onDismissRequest = { resetMistakesList = false },
+            title = { Text("Mistakes reset", style = dialogHeader) },
+            text = {
+                Text("Are you sure you wanna reset mistakes words list?", style = dialogMain)
+            },
+            confirmButton = {
+                CustomButton(
+                    onClick = {
+                        viewModel.deleteAllMistakenWords()
+                        resetMistakesList = false
+                    },
+                    text = "Yes")
+            },
+            dismissButton = {
+                CustomButton(
+                    onClick = {
+                        resetMistakesList = false
+                    },
+                    text = "No")
+            }
         )
     }
 
@@ -916,9 +969,9 @@ fun WordTrainingScreen(
                 }
                 else{
                     Text("You quite literally have no mistakes to correct, as of now.\n" +
-                            " For now, keep up the good work!\nBut test to learn frequently" +
+                            "For now, keep up the good work!\nBut test to learn frequently" +
                             " failed words can't be generated," +
-                            " for obvious reasons", style = dialogMain)
+                            " for obvious reasons.", style = dialogMain)
                 }
             },
             confirmButton = {
@@ -1739,6 +1792,7 @@ fun ResultsScreen(
         ) {
             Text(
                 fontSize = 40.sp,
+                fontFamily = montserratFontFamily,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp),
@@ -1997,6 +2051,7 @@ fun ResultsScreenZen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .fillMaxHeight()
                         .padding(vertical = 8.dp),
                     state = scrollState
                 ) {

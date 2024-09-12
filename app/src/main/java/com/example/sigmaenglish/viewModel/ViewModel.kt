@@ -107,7 +107,6 @@ class ViewModel @Inject constructor(
         }
     }
 
-
     fun addWordFailed(word: DBType.WordsFailed) {
         Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Adding word: ${word.english}")
         viewModelScope.launch(Dispatchers.IO) {
@@ -144,8 +143,19 @@ class ViewModel @Inject constructor(
         }
     }
     fun checkForUpdatesHS(newStreak: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch() {
             preferencesManager.checkForUpdateHS(getApplication(), newStreak)
+        }
+    }
+    fun deleteMistakenWord(englishWord: String){
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteMistakenWord(englishWord)
+            Log.d("Viewmodel", "Deletion of mistaken word issued")
+        }
+    }
+    fun deleteAllMistakenWords(){
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteAllMistakenWords()
         }
     }
 

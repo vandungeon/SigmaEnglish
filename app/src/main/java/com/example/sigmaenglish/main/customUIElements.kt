@@ -76,17 +76,30 @@ import com.example.sigmaenglish.ui.theme.standartText
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.painter.Painter
 
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.sigmaenglish.navigation.GuideChapters.MainScreenGuide
 
 @Composable
-fun MyImage() {
+fun LogoImage() {
     Image(
         painter = painterResource(id = R.drawable.logo),
         contentDescription = "My PNG Image",
         contentScale = ContentScale.Fit, // (Crop, Fit, FillBounds)
         modifier = Modifier.size(150.dp)
     )
+}
+@Composable
+fun GuideImage(painter: Painter) {
+    HorizontalDivider(modifier = Modifier.fillMaxWidth(1f).padding(top = 8.dp), color = colorScheme.primaryContainer)
+    Image(
+        painter = painter,
+        contentDescription = "My PNG Image",
+        contentScale = ContentScale.Fit,
+        modifier = Modifier.size(300.dp)
+    )
+    HorizontalDivider(modifier = Modifier.fillMaxWidth(1f).padding(bottom = 8.dp), color = colorScheme.primaryContainer)
 }
 
 
@@ -107,7 +120,7 @@ fun ExpandableItemComposable(item: ExpandableItem, level: Int = 0) {
         // Display the title
         Text(
             text = item.title,
-            style = MaterialTheme.typography.titleMedium,
+            fontFamily = montserratFontFamily, fontWeight = FontWeight.SemiBold,
             modifier = Modifier
                 .padding(start = (level * 16).dp)
                 .clickable { expanded = !expanded }
@@ -153,10 +166,7 @@ fun PreviewExpandableList() {
                         Text(text = "Content for 2", style = typography.bodyMedium)
                     },
                     children = listOf(
-                        ExpandableItem(title = "2-a", content = { ContentA() }),
-                        ExpandableItem(title = "2-b", content = { ContentB() }),
-                        ExpandableItem(title = "2-c", content = { Text(text = "This is content for 2-c") }),
-                        ExpandableItem(title = "2-d", content = { Text(text = "This is content for 2-d") })
+                        ExpandableItem(title = "2-a", content = { MainScreenGuide()})
                     )
                 ),
                 ExpandableItem(title = "3-a", content = { Text(text = "Content for 3-a") })
@@ -274,7 +284,7 @@ fun AddWordDialog(viewModel: ViewModel,
     var russianWord by remember { mutableStateOf("") }
     var enableButton by remember { mutableStateOf(false) }
     fun validateInput(eng: String, rus: String): Boolean {
-        return eng.isNotEmpty() and rus.isNotEmpty()
+        return eng.isNotEmpty() and rus.isNotEmpty() && !rus.contains(" ")
     }
     AlertDialog(
         containerColor = colorScheme.primaryContainer,

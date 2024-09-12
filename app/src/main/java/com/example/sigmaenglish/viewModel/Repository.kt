@@ -49,5 +49,11 @@ class Repository (private val dataAccessObjects: DataAccessObjects){
         dataAccessObjects.checkForCompletedFails()
     }
 
+    fun deleteMistakenWord(englishWord: String) {
+        dataAccessObjects.deleteMistakenWord(englishWord = englishWord)
+    }
 
+    fun deleteAllMistakenWords(){
+        dataAccessObjects.deleteAllMistakenWords()
+    }
 }
