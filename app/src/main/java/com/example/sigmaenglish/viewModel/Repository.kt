@@ -1,8 +1,8 @@
 package com.example.sigmaenglish.viewModel
 
 import androidx.lifecycle.LiveData
-import com.example.sigmaenglish.Database.DBType
-import com.example.sigmaenglish.Database.DataAccessObjects
+import com.example.sigmaenglish.database.DBType
+import com.example.sigmaenglish.database.DataAccessObjects
 
 class Repository (private val dataAccessObjects: DataAccessObjects){
 
@@ -19,7 +19,6 @@ class Repository (private val dataAccessObjects: DataAccessObjects){
     suspend fun updateWord(word: DBType.Word) {
         dataAccessObjects.updateWord(word)
     }
-
 
     val readAllDataFailed: LiveData<List<DBType.WordsFailed>> = dataAccessObjects.readAllDataFailed()
 

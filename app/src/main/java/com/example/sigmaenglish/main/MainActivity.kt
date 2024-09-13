@@ -1,6 +1,7 @@
 package com.example.sigmaenglish.main
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -10,7 +11,6 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -26,6 +26,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -56,10 +57,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -67,8 +68,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavHostController
-import com.example.sigmaenglish.Database.DBType
+import com.example.sigmaenglish.database.DBType
 import com.example.sigmaenglish.navigation.GuideChapters
 import com.example.sigmaenglish.navigation.GuideChapters.MainScreenGuide
 import com.example.sigmaenglish.navigation.NavigationComponent
@@ -76,8 +78,6 @@ import com.example.sigmaenglish.navigation.convertWordsToJson
 import com.example.sigmaenglish.ui.theme.PastelGreen
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
 import com.example.sigmaenglish.ui.theme.WrongRed
-import com.example.sigmaenglish.ui.theme.customText
-import com.example.sigmaenglish.ui.theme.customTitle
 import com.example.sigmaenglish.ui.theme.dialogMain
 import com.example.sigmaenglish.ui.theme.interFontFamily
 import com.example.sigmaenglish.ui.theme.montserratFontFamily
@@ -112,12 +112,15 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun StartScreen(navController: NavHostController) {
+    val activity = LocalContext.current as? Activity ?: return
+    val insetsController = WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+    insetsController?.isAppearanceLightStatusBars = true
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(colorScheme.primary),
             contentAlignment = Alignment.Center,
-
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -194,13 +197,21 @@ fun ScreenGuide(navController: NavHostController) {
             }
         )
     )
-    Column(modifier = Modifier.background(colorScheme.primary)) {
+    Column(modifier = Modifier.background(colorScheme.primary).pointerInput(Unit) {
+        detectHorizontalDragGestures { _, dragAmount ->
+            if (dragAmount < -50) { // Swipe right to left
+                navController.navigate("start") {
+                    popUpTo("start") { inclusive = true }
+                }
+            }
+        }
+    },) {
         Text(
             fontSize = 40.sp,
             fontFamily = montserratFontFamily,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
+                .padding(top = 48.dp),
             textAlign = TextAlign.Center,
             text = "How to use",
             color = colorScheme.secondary,
@@ -223,10 +234,10 @@ fun ScreenGuide(navController: NavHostController) {
 @Composable
 fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
     val wordList by viewModel.words.observeAsState(emptyList())
-    var showDialog by remember { mutableStateOf(false) }
+    var addWordDialog by remember { mutableStateOf(false) }
     var selectedWord by remember { mutableStateOf<DBType.Word?>(null) }
     var importFromNotesDialog by remember { mutableStateOf(false) }
-    var resetMistakesList by remember { mutableStateOf(false)}
+    var resetMistakesListDialog by remember { mutableStateOf(false)}
 
     Scaffold(
         topBar = {
@@ -245,7 +256,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                         Text("Words list", modifier = Modifier.padding(vertical = 10.dp), fontFamily = montserratFontFamily, fontWeight = FontWeight.SemiBold)
                         Row {
                             IconButton(onClick = {
-                                resetMistakesList  = true
+                                resetMistakesListDialog  = true
                             }) {
                                 Icon(Icons.Default.Refresh, contentDescription = "Exit")
                             }
@@ -273,7 +284,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                 containerColor = colorScheme.secondary,
                 text = { Text("Add Word", fontFamily = montserratFontFamily) },
                 icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
-                onClick = { showDialog = true },
+                onClick = { addWordDialog = true },
             )
         }
     ) { innerPadding ->
@@ -317,7 +328,6 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                                     onLongClick = { selectedWord = word }
                                 ),
                             horizontalAlignment = Alignment.Start,
-                            //verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -327,7 +337,6 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                             ) {
                                 TableCell(text = word.english, weight = 1f)
                                 TableCell(text = word.russian, weight = 1f)
-
                             }
                             if(index == wordList.size - 1 )HorizontalDivider(thickness = 1.dp, color = colorScheme.secondary)
                             Crossfade(
@@ -362,7 +371,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         }
     }
 
-    if (showDialog) {
+    if (addWordDialog) {
         AddWordDialog(
             viewModel = viewModel,
             onConfirm = { english, russian, description ->
@@ -372,9 +381,9 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                     description = description,
                 )
                 viewModel.addWord(word)
-                showDialog = false
+                addWordDialog = false
             },
-            onDismiss = { showDialog = false }
+            onDismiss = { addWordDialog = false }
         )
     }
     if (importFromNotesDialog) {
@@ -387,7 +396,6 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                         description = word.description,
                     )
                     viewModel.addWord(newWord)
-                    showDialog = false
                 }
             },
             onDismiss = { importFromNotesDialog = false }
@@ -409,13 +417,12 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
             onDismiss = { selectedWord = null }
         )
     }
-    if (resetMistakesList) {
+    if (resetMistakesListDialog) {
         AlertDialog(
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 8.dp,
-            //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
             containerColor = colorScheme.primaryContainer,
-            onDismissRequest = { resetMistakesList = false },
+            onDismissRequest = { resetMistakesListDialog = false },
             title = { Text("Mistakes reset", style = dialogHeader) },
             text = {
                 Text("Are you sure you wanna reset mistakes words list?", style = dialogMain)
@@ -424,14 +431,14 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                 CustomButton(
                     onClick = {
                         viewModel.deleteAllMistakenWords()
-                        resetMistakesList = false
+                        resetMistakesListDialog = false
                     },
                     text = "Yes")
             },
             dismissButton = {
                 CustomButton(
                     onClick = {
-                        resetMistakesList = false
+                        resetMistakesListDialog = false
                     },
                     text = "No")
             }
@@ -441,7 +448,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
 }
 
 @Composable
-fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
+fun TrainingMenu(navController: NavHostController) {
     var selectedScreen by remember { mutableStateOf("") }
 
         Column(
@@ -451,7 +458,6 @@ fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Example cards for different modes
             Text("Select a mode:", style = typography.titleLarge, color = colorScheme.secondary)
             Spacer(modifier = Modifier.height(16.dp))
             Box(
@@ -472,8 +478,6 @@ fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
                         onSelect = { selectedScreen = "Mistakes" },
                         modifier = Modifier.padding(top = 16.dp)
                     )
-
-                    // Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp).padding(vertical = 16.dp)
                     ModeCard(
                         mode = "Description  \uD83D\uDCDD",
                         selectedScreen = selectedScreen,
@@ -492,28 +496,19 @@ fun TrainingMenu(viewModel: ViewModel, navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Animated content based on selectedScreen
-            AnimatedContent(
-                targetState = selectedScreen,
-                transitionSpec = {
-                    slideInHorizontally { width -> width } togetherWith slideOutHorizontally { width -> -width }
-                }
-            ) { screen ->
-                when (screen) {
+                when (selectedScreen) {
                     "Classic" -> navController.navigate("settings/Classic")
                     "Mistakes" -> navController.navigate("settings/Mistakes")
                     "Description" -> navController.navigate("settings/Description")
                     "Zen" -> navController.navigate("WordTrainingScreenZen")
-                    else -> { /* Handle default case or additional screens */
+                    else -> {
                     }
                 }
             }
-        }
-
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, trainingType: String) {
+fun SettingsScreen(navController: NavHostController, trainingType: String) {
     var showDialog by remember { mutableStateOf(false) }
     var selectedNumber by remember { mutableIntStateOf(10) }
     var selectedType by remember { mutableStateOf("All") }
@@ -536,7 +531,10 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
                                 Text(
                                     text = number.toString(),
                                     modifier = Modifier
-                                        .clickable {
+                                        .clickable(
+                                            indication = null,
+                                            interactionSource = remember { MutableInteractionSource() }
+                                        ) {
                                             if (selectedType != "All" && selectedType != "") {
                                                 showDialog = true
                                             } else {
@@ -571,7 +569,10 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
                             Text(
                                 text = type,
                                 modifier = Modifier
-                                    .clickable {
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() }
+                                    ) {
                                         selectedType = type
                                         if (selectedType != "All") {
                                             if (selectedType == "Last 10") {
@@ -583,7 +584,6 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
 
                                     }
                                     .padding(horizontal = 25.dp),
-                                //color = if (selectedNumber == number) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
                                 color = if (selectedType == type) colorScheme.secondary else colorScheme.primary,
                             )
                         }
@@ -631,7 +631,6 @@ fun SettingsScreen(viewModel: ViewModel, navController: NavHostController, train
                                 navController.navigate("WordTrainingScreenDescription/$selectedNumber/$selectedType")
                             }
                         }
-
                     }
                 )
             }
@@ -741,7 +740,7 @@ fun WordTrainingScreen(
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         )
-        Log.d("Loading screen\"", "Words didn't initalize, source is set to $wordSourse, isSourceEmpty is $isSourceEmpty")
+        Log.d("Loading screen\"", "Words didn't initialize, source is set to $wordSourse, isSourceEmpty is $isSourceEmpty")
     }
     else {
 
@@ -805,18 +804,17 @@ fun WordTrainingScreen(
                             .fillMaxWidth()
                             .focusRequester(focusRequester),
                         colors = TextFieldDefaults.colors(
-                            cursorColor = Color.White // Change cursor color to white
+                            cursorColor = colorScheme.primary
                         )
                     )
                     BottomAppBar(
                         containerColor = colorScheme.primaryContainer,
                         contentColor = colorScheme.secondary
                     ) {
-
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp), // Adjust height as needed
+                                .height(56.dp), 
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -876,7 +874,6 @@ fun WordTrainingScreen(
                                 slideOutHorizontally { width -> -width } + fadeOut()
                             )
                         }
-
                     ) { index ->
                         Text(words[index].english, fontSize = 50.sp, textAlign = TextAlign.Center, color = colorScheme.secondary,
                             modifier = Modifier.offset { IntOffset(shake.value.roundToInt(), y = 0) }
@@ -884,14 +881,7 @@ fun WordTrainingScreen(
                     }
 
                         Column(Modifier.padding(2.dp), horizontalAlignment = Alignment.CenterHorizontally){
-                            Surface(
-                                shadowElevation = 2.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                color = Color.Transparent,
-                                modifier = Modifier
-                                    .animateContentSize()
-                                    .padding(all = 8.dp)
-                            ){
+
                             Hint(
                             iconUsed = true,
                             initialText = "Description",
@@ -900,15 +890,6 @@ fun WordTrainingScreen(
                             isExpanded = isHintExpanded,
                             onExpandChange = setHintExpanded
                             )
-                            }
-                            Surface(
-                                shadowElevation = 2.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                color = Color.Transparent,
-                                modifier = Modifier
-                                    .animateContentSize()
-                                    .padding(all = 8.dp)
-                            ) {
                                 Hint(
                                     iconUsed = false,
                                     initialText = "\uD83E\uDD37   See answer",
@@ -917,7 +898,6 @@ fun WordTrainingScreen(
                                     isExpanded = isHintExpanded2,
                                     onExpandChange = setHintExpanded2
                                 )
-                            }
                         }
                 }
             }
@@ -925,7 +905,6 @@ fun WordTrainingScreen(
                 AlertDialog(
                     shape = RoundedCornerShape(16.dp),
                     tonalElevation = 8.dp,
-                    //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
                     containerColor = colorScheme.primaryContainer,
                     onDismissRequest = { isAlertDialogEnabled = false },
                     title = { Text("Are you sure?", style = dialogHeader) },
@@ -956,7 +935,6 @@ fun WordTrainingScreen(
         AlertDialog(
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 8.dp,
-            //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
             containerColor = colorScheme.primaryContainer,
             onDismissRequest = { navController.navigate("start") {
                 popUpTo("start") { inclusive = true }
@@ -1060,10 +1038,9 @@ fun WordTrainingScreenZen(
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         )
-        Log.d("Loading screen\"", "Words didn't initalize, isSourceEmpty is $isSourceEmpty")
+        Log.d("Loading screen\"", "Words didn't initialize, isSourceEmpty is $isSourceEmpty")
     }
     else {
-
             Scaffold(
                 modifier = Modifier.pointerInput(Unit) {
                     detectHorizontalDragGestures { _, dragAmount ->
@@ -1131,7 +1108,7 @@ fun WordTrainingScreenZen(
                                 .fillMaxWidth()
                                 .focusRequester(focusRequester),
                             colors = TextFieldDefaults.colors(
-                                cursorColor = Color.White // Change cursor color to white
+                                cursorColor = colorScheme.primary
                             )
                         )
                         BottomAppBar(
@@ -1141,7 +1118,7 @@ fun WordTrainingScreenZen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(56.dp), // Adjust height as needed
+                                    .height(56.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Row(
@@ -1253,14 +1230,6 @@ fun WordTrainingScreenZen(
                     }
 
                     Column(Modifier.padding(2.dp), horizontalAlignment = Alignment.CenterHorizontally){
-                        Surface(
-                            shadowElevation = 2.dp,
-                            shape = RoundedCornerShape(16.dp),
-                            color = Color.Transparent,
-                            modifier = Modifier
-                                .animateContentSize()
-                                .padding(all = 8.dp)
-                        ){
                             Hint(
                                 iconUsed = true,
                                 initialText = "Description",
@@ -1269,15 +1238,6 @@ fun WordTrainingScreenZen(
                                 isExpanded = isHintExpanded,
                                 onExpandChange = setHintExpanded
                             )
-                        }
-                        Surface(
-                            shadowElevation = 2.dp,
-                            shape = RoundedCornerShape(16.dp),
-                            color = Color.Transparent,
-                            modifier = Modifier
-                                .animateContentSize()
-                                .padding(all = 8.dp)
-                        ) {
                             Hint(
                                 iconUsed = false,
                                 initialText = "\uD83E\uDD37   See answer",
@@ -1286,7 +1246,6 @@ fun WordTrainingScreenZen(
                                 isExpanded = isHintExpanded2,
                                 onExpandChange = setHintExpanded2
                             )
-                        }
                     }
                 }
             }
@@ -1294,7 +1253,6 @@ fun WordTrainingScreenZen(
                 AlertDialog(
                     shape = RoundedCornerShape(16.dp),
                     tonalElevation = 8.dp,
-                    //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
                     containerColor = colorScheme.primaryContainer,
                     onDismissRequest = { isAlertDialogEnabled = false },
                     title = { Text("Are you sure?", style = dialogHeader) },
@@ -1379,7 +1337,6 @@ fun WordTrainingScreenDescription(
         showResults = false
         wrongAnswers = emptySet()
     }
-
     LaunchedEffect(Unit) {
         while (true) {
             elapsedTime = System.currentTimeMillis() - startTime
@@ -1510,14 +1467,6 @@ fun WordTrainingScreenDescription(
                             modifier = Modifier.offset { IntOffset(shake.value.roundToInt(), y = 0) }
                         )
                     }
-                        Surface(
-                            shadowElevation = 2.dp,
-                            shape = RoundedCornerShape(16.dp),
-                            color = Color.Transparent,
-                            modifier = Modifier
-                                .animateContentSize()
-                                .padding(all = 8.dp)
-                        ){
                             Hint(
                                 iconUsed = true,
                                 initialText = "Translation",
@@ -1526,11 +1475,7 @@ fun WordTrainingScreenDescription(
                                 isExpanded = isHintExpanded,
                                 onExpandChange = setHintExpanded
                             )
-                        }
-
                         if(words.size >=4) {
-
-
                             LaunchedEffect(currentWordIndex) {
                                 val randomPosition = (0..3).random()
                                 val remainingOptions =
@@ -1586,10 +1531,6 @@ fun WordTrainingScreenDescription(
                                             colors = ButtonDefaults.buttonColors(containerColor = colorScheme.tertiary.copy(alpha = 0.5f), contentColor = buttonColors[index]),
                                             modifier = Modifier
                                                 .width(200.dp)
-                                               // .border(
-                                              //      BorderStroke(1.dp, color = colorScheme.secondary),
-                                              //      shape = RoundedCornerShape(220.dp)
-                                               // )
                                         ) {
                                             Text(
                                                 option,
@@ -1617,7 +1558,6 @@ fun WordTrainingScreenDescription(
                 AlertDialog(
                     shape = RoundedCornerShape(16.dp),
                     tonalElevation = 8.dp,
-                    //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
                     containerColor = colorScheme.primaryContainer,
                     onDismissRequest = { isAlertDialogEnabled = false },
                     title = { Text("Are you sure?", style = dialogHeader) },
@@ -1647,7 +1587,6 @@ fun WordTrainingScreenDescription(
         AlertDialog(
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 8.dp,
-            //modifier = Modifier.border(BorderStroke(2.dp, colorScheme.secondary), shape = RoundedCornerShape(16.dp)),
             containerColor = colorScheme.primaryContainer,
             onDismissRequest = { navController.navigate("start") {
                 popUpTo("start") { inclusive = true }
@@ -1703,7 +1642,6 @@ fun ResultsScreen(
         }
         viewModel.checkForDeletion()
     }
-
     val wordCount: Int = learnedWords.size
     val accuracy: String = buildString {
         var correctScore = 0
@@ -1877,7 +1815,6 @@ fun ResultsScreen(
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-
                     // First Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),

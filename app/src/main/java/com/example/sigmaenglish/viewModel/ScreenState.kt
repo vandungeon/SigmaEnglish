@@ -1,6 +1,6 @@
 package com.example.sigmaenglish.viewModel
 
-import com.example.sigmaenglish.Database.DBType
+import com.example.sigmaenglish.database.DBType
 
 data class ScreenState(
     val words: List<DBType.Word> = emptyList(),

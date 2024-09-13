@@ -39,7 +39,7 @@ fun NavigationComponent(viewModel: ViewModel) {
         composable("start") { StartScreen(navController) }
         composable("guide") { ScreenGuide(navController) }
         composable("WordListScreen") { WordListScreen(viewModel, navController) }
-        composable("trainingMenu") { TrainingMenu(viewModel, navController) }
+        composable("trainingMenu") { TrainingMenu(navController) }
         composable(
             route = "settings/{selectedType}",
             arguments = listOf(
@@ -47,7 +47,7 @@ fun NavigationComponent(viewModel: ViewModel) {
             )
         ) { backStackEntry ->
             val selectedType = backStackEntry.arguments?.getString("selectedType")
-            SettingsScreen(viewModel, navController, selectedType ?: "Classic")
+            SettingsScreen(navController, selectedType ?: "Classic")
         }
         composable(
             route = "WordTrainingScreen/{selectedNumber}/{selectedType}/{wordRefreshList}/{WordSourse}",

@@ -1,6 +1,7 @@
 package com.example.sigmaenglish.main
 
 import android.util.Log
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -30,15 +30,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
-import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldColors
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -53,15 +49,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.sigmaenglish.Database.DBType
+import com.example.sigmaenglish.database.DBType
 import com.example.sigmaenglish.R
 import com.example.sigmaenglish.ui.theme.GoldSchemeWhite
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
@@ -77,9 +71,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.ui.graphics.painter.Painter
-
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.sigmaenglish.navigation.GuideChapters.MainScreenGuide
 
 @Composable
 fun LogoImage() {
@@ -103,41 +94,39 @@ fun GuideImage(painter: Painter) {
 }
 
 
-
-// Define data class for items with composable content
 data class ExpandableItem(
     val title: String,
     val content: @Composable (() -> Unit)? = null,
     val children: List<ExpandableItem> = emptyList()
 )
 
-// Define a composable for an expandable item
 @Composable
 fun ExpandableItemComposable(item: ExpandableItem, level: Int = 0) {
     var expanded by remember { mutableStateOf(false) }
 
-    Column {
-        // Display the title
-        Text(
-            text = item.title,
-            fontFamily = montserratFontFamily, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .padding(start = (level * 16).dp)
-                .clickable { expanded = !expanded }
-        )
-        // Show content if expanded
-        if (expanded) {
-            item.content?.let { content ->
-                content()
+    Column(
+        modifier = Modifier
+            .animateContentSize()
+            .padding(start = (level * 16).dp)
+    ) {
+            Text(
+                text = item.title,
+                fontFamily = montserratFontFamily, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clickable { expanded = !expanded }
+            )
+
+            if (expanded) {
+                item.content?.let { content ->
+                    content()
+                }
+                item.children.forEach {
+                    ExpandableItemComposable(it, level + 1)
+                }
             }
-            item.children.forEach {
-                ExpandableItemComposable(it, level + 1)
-            }
-        }
     }
 }
 
-// Main composable to display the list
 @Composable
 fun ExpandableList(items: List<ExpandableItem>) {
     LazyColumn(
@@ -150,35 +139,6 @@ fun ExpandableList(items: List<ExpandableItem>) {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewExpandableList() {
-    val items = listOf(
-        ExpandableItem(
-            title = "1 - Press here",
-            content = {
-                Text(text = "Content for 1", style = typography.bodyMedium)
-            },
-            children = listOf(
-                ExpandableItem(
-                    title = "2",
-                    content = {
-                        Text(text = "Content for 2", style = typography.bodyMedium)
-                    },
-                    children = listOf(
-                        ExpandableItem(title = "2-a", content = { MainScreenGuide()})
-                    )
-                ),
-                ExpandableItem(title = "3-a", content = { Text(text = "Content for 3-a") })
-            )
-        )
-    )
-    MaterialTheme {
-        ExpandableList(items)
-    }
-}
-
-
 val styleHeader = customTitle.toSpanStyle()
 val styleText = customText.toSpanStyle()
 
@@ -190,18 +150,6 @@ val dialogHeader = TextStyle(
     lineHeight = 24.sp,
     letterSpacing = 0.5.sp
 )
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun customTextFieldColors(): TextFieldColors {
-    return TextFieldDefaults.textFieldColors(
-        focusedTextColor =  Color.Black,
-        disabledTextColor = Color.Black,
-        unfocusedPlaceholderColor = colorScheme.secondary,
-        focusedPlaceholderColor = colorScheme.secondary
-
-    )
-}
 @Composable
 fun customButtonColors(): ButtonColors {
     return ButtonDefaults.buttonColors(
@@ -347,42 +295,52 @@ fun Hint(
     onExpandChange: (Boolean) -> Unit
 ) {
     val displayText = if (isExpanded) expandedText else initialText
-    Modifier.padding(20.dp)
-    Card(
-        shape = RoundedCornerShape(16.dp), // Set the round shape here
-        colors = CardDefaults.cardColors(colorScheme.secondary), // Set the container color here
+    Surface(
+        shadowElevation = 2.dp,
+        shape = RoundedCornerShape(16.dp),
+        color = Color.Transparent,
         modifier = Modifier
-            .clickable(onClick = { onExpandChange(!isExpanded) })
-            .padding(all = 0.dp)
-            .border(BorderStroke(2.dp, colorScheme.tertiary), shape = RoundedCornerShape(16.dp)),
+            .animateContentSize()
+            .padding(all = 8.dp)
     ) {
-        Row(
+        Modifier.padding(20.dp)
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(colorScheme.secondary),
             modifier = Modifier
-                .padding(all = 8.dp), // Padding inside the Card
-            verticalAlignment = Alignment.CenterVertically,
+                .clickable(onClick = { onExpandChange(!isExpanded) })
+                .padding(all = 0.dp)
+                .border(
+                    BorderStroke(2.dp, colorScheme.tertiary),
+                    shape = RoundedCornerShape(16.dp)
+                ),
         ) {
-            if(iconUsed) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = "Info",
-                    modifier = Modifier.padding(horizontal = 0.dp),
-                    tint = colorScheme.tertiary
-                )
-                Text(
-                    color = colorScheme.tertiary,
-                    text = displayText,
-                    style = hintText,
-                    modifier = Modifier.padding(horizontal = 10.dp)
-                )
-            }
-            else {
-
-                Text(
-                    color = colorScheme.tertiary,
-                    text = displayText,
-                    style = hintText,
-                    modifier = Modifier.padding(horizontal = 10.dp)
-                )
+            Row(
+                modifier = Modifier
+                    .padding(all = 8.dp), // Padding inside the Card
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (iconUsed) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = "Info",
+                        modifier = Modifier.padding(horizontal = 0.dp),
+                        tint = colorScheme.tertiary
+                    )
+                    Text(
+                        color = colorScheme.tertiary,
+                        text = displayText,
+                        style = hintText,
+                        modifier = Modifier.padding(horizontal = 10.dp)
+                    )
+                } else {
+                    Text(
+                        color = colorScheme.tertiary,
+                        text = displayText,
+                        style = hintText,
+                        modifier = Modifier.padding(horizontal = 10.dp)
+                    )
+                }
             }
         }
     }
@@ -395,7 +353,6 @@ fun ModeCard(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier) {
     SigmaEnglishTheme {
-
         Card(
             modifier = modifier
                 .clickable(onClick = onSelect),
@@ -440,7 +397,6 @@ fun WordManagementDialog(
     fun validateInput(eng: String, rus: String): Boolean {
         return eng.isNotEmpty() and rus.isNotEmpty()
     }
-    // Dialog UI to manage the word (delete or update)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Manage Word", style = dialogHeader) },
@@ -573,7 +529,7 @@ fun ImportWordsDialog(
                                     }
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Check, // Check mark icon
+                                        imageVector = Icons.Default.Check,
                                         contentDescription = "Confirm",
                                         tint = colorScheme.primary
                                     )
@@ -666,29 +622,6 @@ fun ImportWordsDialog(
                                 }
                             }
                         )
-                        /*Spacer(modifier = Modifier.height(18.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            CustomButton(
-                                modifier = Modifier.padding(horizontal = 0.dp).height(35.dp),
-                                // .fillMaxHeight(0.3f),
-                                contentPadding = PaddingValues(vertical = 0.dp, horizontal = 20.dp),
-                                colors = customButtonColors(),
-                                onClick = {
-
-                                }, text =
-                                        "Delete word")
-                            VerticalDivider(Modifier.size(10.dp), color = Color.Transparent)
-                           CustomButton(
-                               modifier = Modifier.padding(horizontal = 0.dp).height(35.dp),
-                               // .fillMaxHeight(0.3f),
-                               contentPadding = PaddingValues(vertical = 0.dp, horizontal = 20.dp),
-                                colors = customButtonColors(),
-                                onClick = {
-
-                                }, text = "Set translation")
-                        }*/
                         Spacer(modifier = Modifier.height(16.dp))
                         Row {
                             IconButton(

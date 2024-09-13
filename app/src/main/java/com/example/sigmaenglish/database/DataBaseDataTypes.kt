@@ -1,6 +1,5 @@
-package com.example.sigmaenglish.Database
+package com.example.sigmaenglish.database
 
-import androidx.compose.runtime.MutableState
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 

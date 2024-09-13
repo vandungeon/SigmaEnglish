@@ -1,4 +1,4 @@
-package com.example.sigmaenglish.Database
+package com.example.sigmaenglish.database
 
 import androidx.lifecycle.LiveData
 import androidx.room.Dao

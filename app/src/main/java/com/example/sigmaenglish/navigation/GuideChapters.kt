@@ -1,14 +1,13 @@
 package com.example.sigmaenglish.navigation
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme.colorScheme
-import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import com.example.sigmaenglish.main.GuideImage
 import com.example.sigmaenglish.R
 import com.example.sigmaenglish.ui.theme.standartText
@@ -105,5 +104,8 @@ object GuideChapters {
                 " like time spent, type of training, amount of words, accuracy rate." +
                 "\nThis screen is almost the same for all modes, except for slight changes in Result screen of Zen - there you will be also shown your score and your all-time high score.")
     GuideImage(painter = painterResource(id = R.drawable.results_screen))
+        CustomText(text = "\nButtons at the bottom serve purpose of navigating you to screens you need after test is over." +
+                " First will allow you to do the same training with same words again, second will generate same type of training but with new selection of words, third lead you to Mistakes practice and fourth to Main screen.")
+    Spacer(modifier = Modifier.height(15.dp))
     }
 }

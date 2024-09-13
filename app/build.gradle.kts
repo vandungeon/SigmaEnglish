@@ -67,14 +67,15 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
 
-    // To use Kotlin Symbol Processing (KSP)
+
     ksp(libs.androidx.room.compiler)
-    // optional - Guava support for Room, including Optional and ListenableFuture
+
     implementation(libs.androidx.room.guava)
     implementation(libs.androidx.core.ktx.v1120)
 
     implementation(libs.androidx.lifecycle.viewmodel.ktx.v284)
     implementation(libs.androidx.lifecycle.livedata.ktx.v262)
+    implementation (libs.google.accompanist.navigation.animation)
 
     implementation(libs.hilt.android.v250)
     kapt(libs.hilt.android.compiler.v250)

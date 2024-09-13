@@ -27,7 +27,6 @@ fun calculateGradientAlpha(lazyListState: LazyListState): Float {
         0f // No scrollable content, so full alpha
     }
 }
-
 fun stringParser(string: String): MutableList<TemplateWord> {
 
     val wordsList = mutableListOf<TemplateWord>()

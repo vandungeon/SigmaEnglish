@@ -1,25 +1,15 @@
 package com.example.sigmaenglish.viewModel
 
 import android.app.Application
-import android.content.Context
-import android.content.Context.MODE_PRIVATE
 import android.util.Log
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.asLiveData
-import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.CreationExtras
-import com.example.sigmaenglish.Database.DBType
-import com.example.sigmaenglish.Database.WordDatabase
+import com.example.sigmaenglish.database.DBType
+import com.example.sigmaenglish.database.WordDatabase
 import com.example.sigmaenglish.main.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +17,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-//class ViewModel(application: Application, val preferencesManager: PreferencesManager) : AndroidViewModel(application) {
 @HiltViewModel
 class ViewModel @Inject constructor(
    private val preferencesManager: PreferencesManager,
@@ -158,14 +147,4 @@ class ViewModel @Inject constructor(
             repository.deleteAllMistakenWords()
         }
     }
-
-    /*
-        fun saveUserPreference(context: Context, highestStreak: Int) {
-            viewModelScope.launch(Dispatchers.IO) {
-                preferencesManager.updateHighestStreak(context, highestStreak)
-            }
-        }
-    */
-
-
 }
