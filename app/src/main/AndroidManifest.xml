@@ -6,17 +6,18 @@
         android:name=".main.MainAppClass"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+
         android:theme="@style/Theme.SigmaEnglish"
-        tools:targetApi="31">
+        tools:targetApi="tiramisu">
         <activity
             android:name=".main.MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@style/Theme.SigmaEnglish">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

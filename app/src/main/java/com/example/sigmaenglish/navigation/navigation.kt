@@ -1,6 +1,9 @@
 package com.example.sigmaenglish.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,45 +42,51 @@ fun NavigationComponent(viewModel: ViewModel) {
         composable("start") { StartScreen(navController) }
         composable("guide") { ScreenGuide(navController) }
         composable("WordListScreen") { WordListScreen(viewModel, navController) }
-        composable("trainingMenu") { TrainingMenu(navController) }
+        composable("trainingMenu",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) }, exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left) }, popEnterTransition = {slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right)} )
+        { TrainingMenu(navController) }
         composable(
             route = "settings/{selectedType}",
             arguments = listOf(
-                navArgument("selectedType"){type = NavType.StringType}
-            )
+                navArgument("selectedType") { type = NavType.StringType }
+            ),
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left) }, enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) }
         ) { backStackEntry ->
             val selectedType = backStackEntry.arguments?.getString("selectedType")
             SettingsScreen(navController, selectedType ?: "Classic")
         }
         composable(
-            route = "WordTrainingScreen/{selectedNumber}/{selectedType}/{wordRefreshList}/{WordSourse}",
+            route = "WordTrainingScreen/{selectedNumber}/{selectedType}/{wordRefreshList}/{wordSource}",
             arguments = listOf(
                 navArgument("selectedNumber") { type = NavType.IntType },
                 navArgument("selectedType") { type = NavType.StringType },
                 navArgument("wordRefreshList") {type = NavType.StringType},
-                navArgument("WordSourse") {type = NavType.StringType}
-            )
+                navArgument("wordSource") {type = NavType.StringType}
+            ),
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left) }, enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) }
         ) { backStackEntry ->
             val selectedNumber = backStackEntry.arguments?.getInt("selectedNumber")
             val selectedType = backStackEntry.arguments?.getString("selectedType")
             val wordRefresh = backStackEntry.arguments?.getString("wordRefreshList")
-            val WordSourse = backStackEntry.arguments?.getString("WordSourse")
+            val wordSource = backStackEntry.arguments?.getString("wordSource")
             val wordRefreshList = wordRefresh?.let { convertJsonToWords(it) } ?: emptyList()
-            WordTrainingScreen(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All", wordRefreshList, WordSourse ?: "normal")
+            WordTrainingScreen(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All", wordRefreshList, wordSource ?: "normal")
         }
         composable(
             route = "WordTrainingScreenDescription/{selectedNumber}/{selectedType}",
             arguments = listOf(
                 navArgument("selectedNumber") { type = NavType.IntType },
                 navArgument("selectedType") { type = NavType.StringType },
-            )
+            ),
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left) }, enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) }
         ) { backStackEntry ->
             val selectedNumber = backStackEntry.arguments?.getInt("selectedNumber")
             val selectedType = backStackEntry.arguments?.getString("selectedType")
             WordTrainingScreenDescription(viewModel, navController, selectedNumber ?: 10, selectedType ?: "All")
         }
         composable(
-            route = "WordTrainingScreenZen"
+            route = "WordTrainingScreenZen",
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left) }, enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) }
         ) {
             WordTrainingScreenZen(viewModel, navController)
         }

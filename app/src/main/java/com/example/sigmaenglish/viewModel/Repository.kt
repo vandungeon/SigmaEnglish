@@ -44,8 +44,13 @@ class Repository (private val dataAccessObjects: DataAccessObjects){
         return dataAccessObjects.isWordInFailedDatabase(word)
     }
 
+    suspend fun getWordIdIfExists(word: String) : Int?
+    {
+        return dataAccessObjects.getWordIdIfExists(word)
+    }
     fun checkForDeletion() {
         dataAccessObjects.checkForCompletedFails()
+
     }
 
     fun deleteMistakenWord(englishWord: String) {

@@ -45,4 +45,8 @@ interface DataAccessObjects {
 
     @Query("SELECT EXISTS(SELECT 1 FROM WordsFailed WHERE english = :englishWord)")
     suspend fun isWordInFailedDatabase(englishWord: String): Boolean
+
+    @Query("SELECT id FROM WordsFailed WHERE english = :englishWord LIMIT 1")
+    suspend fun getWordIdIfExists(englishWord: String): Int?
+
 }

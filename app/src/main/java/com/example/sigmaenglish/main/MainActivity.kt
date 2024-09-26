@@ -5,6 +5,7 @@ import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -56,7 +57,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
@@ -84,7 +84,9 @@ import com.example.sigmaenglish.ui.theme.montserratFontFamily
 import com.example.sigmaenglish.ui.theme.standartText
 import com.example.sigmaenglish.viewModel.ViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Delay
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 
@@ -110,12 +112,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@SuppressLint("SuspiciousIndentation")
 @Composable
 fun StartScreen(navController: NavHostController) {
     val activity = LocalContext.current as? Activity ?: return
     val insetsController = WindowCompat.getInsetsController(activity.window, activity.window.decorView)
-    insetsController?.isAppearanceLightStatusBars = true
-
+    insetsController.isAppearanceLightStatusBars = true
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -135,6 +137,9 @@ fun StartScreen(navController: NavHostController) {
 }
 @Composable
 fun ScreenGuide(navController: NavHostController) {
+    BackHandler {
+        navController.navigate("start")
+    }
     val items = listOf(
         ExpandableItem(
             title = "1. Main screen",
@@ -197,15 +202,8 @@ fun ScreenGuide(navController: NavHostController) {
             }
         )
     )
-    Column(modifier = Modifier.background(colorScheme.primary).pointerInput(Unit) {
-        detectHorizontalDragGestures { _, dragAmount ->
-            if (dragAmount < -50) { // Swipe right to left
-                navController.navigate("start") {
-                    popUpTo("start") { inclusive = true }
-                }
-            }
-        }
-    },) {
+    Column(modifier = Modifier
+        .background(colorScheme.primary),) {
         Text(
             fontSize = 40.sp,
             fontFamily = montserratFontFamily,
@@ -238,7 +236,9 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
     var selectedWord by remember { mutableStateOf<DBType.Word?>(null) }
     var importFromNotesDialog by remember { mutableStateOf(false) }
     var resetMistakesListDialog by remember { mutableStateOf(false)}
-
+    BackHandler {
+        navController.navigate("start")
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -294,16 +294,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
             Column(
                 modifier = Modifier
                     .background(colorScheme.primary)
-                    .padding(innerPadding)
-                    .pointerInput(Unit) {
-                        detectHorizontalDragGestures { _, dragAmount ->
-                            if (dragAmount < -50) { // Swipe right to left
-                                navController.navigate("start") {
-                                    popUpTo("start") { inclusive = true }
-                                }
-                            }
-                        }
-                    },
+                    .padding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
@@ -373,11 +364,10 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
 
     if (addWordDialog) {
         AddWordDialog(
-            viewModel = viewModel,
             onConfirm = { english, russian, description ->
                 val word = DBType.Word(
-                    english = english,
-                    russian = russian,
+                    english = english.trimEnd(),
+                    russian = russian.trimEnd(),
                     description = description,
                 )
                 viewModel.addWord(word)
@@ -401,22 +391,44 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
             onDismiss = { importFromNotesDialog = false }
         )
     }
+            selectedWord?.let { word ->
+                val coroutineScope = rememberCoroutineScope()
 
-    selectedWord?.let { word ->
-        WordManagementDialog(
-            word = word,
-            onDelete = {
-                viewModel.deleteWord(word)
-                viewModel.deleteMistakenWord(word.english)
-                selectedWord = null
-            },
-            onUpdate = { updatedWord ->
-                viewModel.updateWord(updatedWord)
-                selectedWord = null
-            },
-            onDismiss = { selectedWord = null }
-        )
-    }
+                WordManagementDialog(
+                    word = word,
+                    onDelete = {
+                        coroutineScope.launch {
+                            viewModel.deleteWord(word)
+                            viewModel.deleteMistakenWord(word.english)
+                            selectedWord = null
+                        }
+                    },
+                    onUpdate = { updatedWord ->
+                        coroutineScope.launch {
+                            viewModel.updateWord(updatedWord)
+
+                            val wordInFailedDb = viewModel.getWordIdIfExists(selectedWord!!.english)
+
+                            if (wordInFailedDb != null) {
+                                viewModel.updateWordFailed(
+                                    DBType.WordsFailed(
+                                        english = updatedWord.english,
+                                        russian = updatedWord.russian,
+                                        description = updatedWord.description,
+                                        id = wordInFailedDb,
+                                        timesPractised = 0
+                                    )
+                                )
+                            }
+
+                            selectedWord = null
+                        }
+                    },
+                    onDismiss = { selectedWord = null }
+                )
+            }
+
+
     if (resetMistakesListDialog) {
         AlertDialog(
             shape = RoundedCornerShape(16.dp),
@@ -447,14 +459,18 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
 
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun TrainingMenu(navController: NavHostController) {
-    var selectedScreen by remember { mutableStateOf("") }
-
+    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+        BackHandler {
+            navController.navigate("start")
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(colorScheme.primary),
+                .background(colorScheme.primary)
+                .padding(innerPadding),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -468,43 +484,28 @@ fun TrainingMenu(navController: NavHostController) {
                 ) {
                     ModeCard(
                         mode = "Classic  \uD83E\uDDD0",
-                        selectedScreen = selectedScreen,
-                        onSelect = { selectedScreen = "Classic" },
+                        onClick = { navController.navigate("settings/Classic") },
                         modifier = Modifier.padding(top = 16.dp)
                     )
                     ModeCard(
                         mode = "Mistakes practise  ❌",
-                        selectedScreen = selectedScreen,
-                        onSelect = { selectedScreen = "Mistakes" },
+                        onClick = { navController.navigate("settings/Mistakes") },
                         modifier = Modifier.padding(top = 16.dp)
                     )
                     ModeCard(
                         mode = "Description  \uD83D\uDCDD",
-                        selectedScreen = selectedScreen,
-                        onSelect = { selectedScreen = "Description" },
+                        onClick = { navController.navigate("settings/Description") },
                         modifier = Modifier.padding(top = 16.dp)
                     )
                     ModeCard(
                         mode = "Zen  \uD83C\uDF43",
-                        selectedScreen = selectedScreen,
-                        onSelect = { selectedScreen = "Zen" },
+                        onClick = { navController.navigate("WordTrainingScreenZen") },
                         modifier = Modifier.padding(top = 16.dp)
                     )
                 }
             }
-
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-                when (selectedScreen) {
-                    "Classic" -> navController.navigate("settings/Classic")
-                    "Mistakes" -> navController.navigate("settings/Mistakes")
-                    "Description" -> navController.navigate("settings/Description")
-                    "Zen" -> navController.navigate("WordTrainingScreenZen")
-                    else -> {
-                    }
-                }
-            }
+        }
+    }
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -595,16 +596,7 @@ fun SettingsScreen(navController: NavHostController, trainingType: String) {
         Column(
             modifier = Modifier
                 .background(colorScheme.primary)
-                .padding(innerPadding)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount ->
-                        if (dragAmount < -50) { // Swipe right to left
-                            navController.navigate("start") {
-                                popUpTo("start") { inclusive = true }
-                            }
-                        }
-                    }
-                },
+                .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column(
@@ -671,34 +663,39 @@ fun WordTrainingScreen(
     var isSourceEmpty by remember { mutableStateOf(false) }
     val startTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var elapsedTime by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            elapsedTime = System.currentTimeMillis() - startTime
-            delay(1000L)
-        }
-    }
+    var dataAssignmentTrigger by remember { mutableLongStateOf(0L) }
+
     val wordLimit = when (type) {
         "last10" -> 10
         "last25" -> 25
         else -> wordCount
     }
-    LaunchedEffect(Unit) {
-        delay(500L)
-        words = when {
-            !wordsRefresh.isNullOrEmpty() && wordSourse == "Refresh" -> {
-                wordsRefresh
+    LaunchedEffect(dataAssignmentTrigger) {
+        if (viewModel.isInitialized) {
+            words = when {
+                !wordsRefresh.isNullOrEmpty() && (wordSourse == "Refresh" || wordSourse == "RefreshMistakes") -> {
+                    wordsRefresh
+                }
+                wordSourse == "Classic" -> {
+                    val takenWords = wordList.map { TestWord(it.english, it.russian, it.description, true) }.takeLast(wordLimit)
+                    takenWords.shuffled()
+                }
+                else -> {
+                    val takenWords = wordListFailed.map { TestWord(it.english, it.russian, it.description, true) }.takeLast(wordLimit)
+                    takenWords.shuffled()
+                }
             }
-            wordSourse == "Classic" -> {
-                val shuffledWords = wordList.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
-                shuffledWords.takeLast(wordLimit)
-            }
-            else -> {
-                val shuffledWords = wordListFailed.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
-                shuffledWords.take(wordCount)
-            }
-        }
 
-        Log.d("WordTraining", "Words initialized $words, words failed $wordListFailed")
+            Log.d("WordTraining", "Words initialized $words, words failed $wordListFailed")
+        } else {
+            Log.d("WordTraining", "ViewModel not initialized yet")
+        }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            elapsedTime = System.currentTimeMillis() - startTime
+            delay(1000L)
+        }
     }
 
     val onClick: () -> Unit = {
@@ -727,8 +724,11 @@ fun WordTrainingScreen(
             shake.animateTo(0f)
         }
     }
-
-    if (words.isEmpty()) {
+    BackHandler {
+        isAlertDialogEnabled = true
+    }
+    if (words.isEmpty()){
+        dataAssignmentTrigger = System.currentTimeMillis()
         if(wordSourse == "Classic" && viewModel.isInitialized){
             isSourceEmpty = viewModel.words.value.isNullOrEmpty()
         }
@@ -740,20 +740,13 @@ fun WordTrainingScreen(
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         )
-        Log.d("Loading screen\"", "Words didn't initialize, source is set to $wordSourse, isSourceEmpty is $isSourceEmpty")
+        Log.d("Loading screen", "Words didn't initialize, source is set to $wordSourse, isSourceEmpty is $isSourceEmpty")
     }
     else {
 
             Scaffold(
                 modifier = Modifier
-                    .background(colorScheme.primary)
-                    .pointerInput(Unit) {
-                        detectHorizontalDragGestures { _, dragAmount ->
-                            if (dragAmount < -50) { // Swipe right to left
-                                isAlertDialogEnabled = true
-                            }
-                        }
-                    },
+                    .background(colorScheme.primary),
                 bottomBar = {
                     Column {
                     TextField(
@@ -768,9 +761,6 @@ fun WordTrainingScreen(
                                             words[currentWordIndex].russian
                                         )
                                     ) {
-                                        if (wordSourse == "failedTraining") {
-                                            viewModel.incrementTraining(words[currentWordIndex].english)
-                                        }
                                         setHintExpanded(false)
                                         setHintExpanded2(false)
                                         if (currentWordIndex + 1 == words.size) {
@@ -785,9 +775,6 @@ fun WordTrainingScreen(
                                         textfield = ""
                                         onClick()
                                     } else {
-                                        if (wordSourse == "failedTraining") {
-                                            viewModel.decrementTraining(words[currentWordIndex].english)
-                                        }
                                         trigger = System.currentTimeMillis()
                                         words[currentWordIndex].isCorrect = false
                                     }
@@ -821,15 +808,9 @@ fun WordTrainingScreen(
                                 "Skip",
                                 modifier = Modifier.clickable(onClick = {
                                     if (currentWordIndex + 1 == words.size) {
-                                        if (wordSourse == "failedTraining") {
-                                            viewModel.decrementTraining(words[currentWordIndex].english)
-                                        }
                                         words[currentWordIndex].isCorrect = false
                                         navController.navigate("ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}/Classic")
                                     } else {
-                                        if (wordSourse == "failedTraining") {
-                                            viewModel.decrementTraining(words[currentWordIndex].english)
-                                        }
                                         setHintExpanded(false)
                                         setHintExpanded2(false)
                                         words[currentWordIndex].isCorrect = false
@@ -857,6 +838,9 @@ fun WordTrainingScreen(
                     style = TextStyle(fontFamily = interFontFamily),
                     color = colorScheme.secondary
                 )
+                if(isKeyboardVisible.value){
+                    Spacer(modifier = Modifier.height(200.dp)) // Adjust height as needed.
+                }
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -983,7 +967,7 @@ fun WordTrainingScreenZen(
     val (isHintExpanded, setHintExpanded) = remember { mutableStateOf(false) }
     val (isHintExpanded2, setHintExpanded2) = remember { mutableStateOf(false) }
     var currentWordIndex: Int by remember { mutableIntStateOf(0) }
-    var earnedScore: Int by remember { mutableStateOf(0) }
+    var earnedScore: Int by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
     var resultList by remember { mutableStateOf(emptyList<TestWord>()) }
     var firstTry by remember { mutableStateOf(true) }
@@ -991,18 +975,24 @@ fun WordTrainingScreenZen(
     var isSourceEmpty by remember { mutableStateOf(false) }
     val startTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var elapsedTime by remember { mutableLongStateOf(0L) }
+    var dataAssignmentTrigger by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(dataAssignmentTrigger) {
+        if (viewModel.isInitialized) {
+            words = wordList.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
+            isSourceEmpty = viewModel.words.value.isNullOrEmpty()
+            Log.d("WordTraining", "Words initialized $words")
+        }
+        else {
+
+            Log.d("WordTraining", "ViewModel not initialized yet")
+        }
+    }
     LaunchedEffect(Unit) {
         while (true) {
             elapsedTime = System.currentTimeMillis() - startTime
             delay(1000L)
         }
     }
-    LaunchedEffect(Unit) {
-        delay(500L)
-        words =  wordList.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
-        Log.d("WordTraining", "Words initialized $words")
-    }
-
     val onClick: () -> Unit = {
         if ((currentWordIndex + 1) < words.size) {
             currentWordIndex++
@@ -1028,27 +1018,21 @@ fun WordTrainingScreenZen(
             shake.animateTo(0f)
         }
     }
-
+    BackHandler {
+        isAlertDialogEnabled = true
+    }
     if (words.isEmpty()) {
-        if(viewModel.isInitialized){
-            isSourceEmpty = viewModel.words.value.isNullOrEmpty()
-        }
+        dataAssignmentTrigger = System.currentTimeMillis()
+
         CircularProgressIndicator(
             modifier = Modifier
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         )
-        Log.d("Loading screen\"", "Words didn't initialize, isSourceEmpty is $isSourceEmpty")
+        Log.d("Loading screen", "Words didn't initialize, isSourceEmpty is $isSourceEmpty")
     }
     else {
             Scaffold(
-                modifier = Modifier.pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount ->
-                        if (dragAmount < -50) { // Swipe right to left
-                            isAlertDialogEnabled = true
-                        }
-                    }
-                },
                 bottomBar = {
                     Column {
                         TextField(
@@ -1212,6 +1196,9 @@ fun WordTrainingScreenZen(
                         .padding(vertical = 250.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    if(isKeyboardVisible.value){
+                        Spacer(modifier = Modifier.height(200.dp)) // Adjust height as needed.
+                    }
                     AnimatedContent(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1326,36 +1313,48 @@ fun WordTrainingScreenDescription(
     val startTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var elapsedTime by remember { mutableLongStateOf(0L) }
     var isAlertDialogEnabled by remember { mutableStateOf(false) }
-
+    val isKeyboardVisible = rememberKeyboardVisibilityObserver()
     var rightAnswer by remember { mutableStateOf("") }
     var selectedAnswer by remember { mutableStateOf<String?>(null) }
     var showResults by remember { mutableStateOf<Boolean?>(false) }
     var options by remember { mutableStateOf<List<String>>(emptyList()) }
     var wrongAnswers by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var dataAssignmentTrigger by remember { mutableLongStateOf(0L) }
     fun resetAnswersState() {
         selectedAnswer = null
         showResults = false
         wrongAnswers = emptySet()
-    }
-    LaunchedEffect(Unit) {
-        while (true) {
-            elapsedTime = System.currentTimeMillis() - startTime
-            delay(1000L)
-        }
     }
     val wordLimit = when (type) {
         "last10" -> 10
         "last25" -> 25
         else -> wordCount
     }
+    LaunchedEffect(dataAssignmentTrigger) {
+        if (viewModel.isInitialized) {
+            if (wordList.size >= 4) {
+                isSourceEmpty = false
+                val takenWords =
+                    wordList.filter { it.description != "not provided" && it.description != "Not provided" }
+                        .map { TestWord(it.english, it.russian, it.description, true) }
+                        .takeLast(wordLimit)
+                words = takenWords.shuffled()
+                rightAnswer = words[currentWordIndex].english
+            }
+            else{
+                isSourceEmpty = true
+            }
+        }
+        else {
+            Log.d("WordTraining", "ViewModel not initialized yet (${viewModel.isInitialized}) //")
+        }
+    }
     LaunchedEffect(Unit) {
-        delay(500L)
-        val shuffledWords = wordList.filter { it.description != "not provided" && it.description != "Not provided"}.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
-        words = shuffledWords.takeLast(wordLimit)
-
-        Log.d("WordTraining", "Words initialized $words")
-        if(words.size <4) {isSourceEmpty = true}
-        rightAnswer = words[currentWordIndex].english
+        dataAssignmentTrigger = System.currentTimeMillis()
+        while (true) {
+            elapsedTime = System.currentTimeMillis() - startTime
+            delay(1000L)
+        }
     }
 
     val goToNewWord: () -> Unit = {
@@ -1365,7 +1364,9 @@ fun WordTrainingScreenDescription(
             resetAnswersState()
         }
     }
-
+    BackHandler {
+        isAlertDialogEnabled = true
+    }
     val shake = remember { Animatable(0f) }
     var trigger by remember { mutableLongStateOf(0L) }
     var triggerDelay by remember { mutableLongStateOf(0L) }
@@ -1390,24 +1391,22 @@ fun WordTrainingScreenDescription(
         }
     }
     if (words.isEmpty()) {
-            isSourceEmpty = viewModel.words.value.isNullOrEmpty()
+        if(viewModel.isInitialized) {
+            dataAssignmentTrigger = System.currentTimeMillis()
+        }
+        else{
         CircularProgressIndicator(
             modifier = Modifier
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         )
-        Log.d("Loading screen\"", "Words didn't initialize isSourceEmpty is $isSourceEmpty")
+            Log.d("Loading screen", "Words didn't initialize isSourceEmpty is $isSourceEmpty isInitialized is ${viewModel.isInitialized}")
+            }
+
     }
     else {
-
+        if(words.size >=4) {
             Scaffold(
-                modifier = Modifier.pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount ->
-                        if (dragAmount < -50) { // Swipe right to left
-                            isAlertDialogEnabled = true
-                        }
-                    }
-                },
                 bottomBar = {
                     BottomAppBar(
                         containerColor = colorScheme.primaryContainer,
@@ -1452,6 +1451,9 @@ fun WordTrainingScreenDescription(
                         .padding(top = 300.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    if(isKeyboardVisible.value){
+                        Spacer(modifier = Modifier.height(200.dp))
+                    }
                     AnimatedContent(
                         modifier = Modifier
                             .fillMaxWidth(),
@@ -1581,7 +1583,7 @@ fun WordTrainingScreenDescription(
                     }
                 )
             }
-
+}
     }
     if (isSourceEmpty) {
         AlertDialog(
@@ -1627,16 +1629,24 @@ fun ResultsScreen(
     selectedMode: String
 ) {
     LaunchedEffect(Unit) {
-        learnedWords.forEach { TestWord ->
-            if (!TestWord.isCorrect) {
-                if (!viewModel.isWordInFailedDatabase(TestWord.english)) {
+        learnedWords.forEach { testWord ->
+            if (!testWord.isCorrect) {
+                if (!viewModel.isWordInFailedDatabase(testWord.english)) {
                     val wordFailed = DBType.WordsFailed(
-                        english = TestWord.english,
-                        russian = TestWord.russian,
-                        description = TestWord.description,
+                        english = testWord.english,
+                        russian = testWord.russian,
+                        description = testWord.description,
                         timesPractised = 0
                     )
                     viewModel.addWordFailed(word = wordFailed)
+                }
+                else{
+                    viewModel.decrementTraining(testWord.english)
+                }
+            }
+            else{
+                if(viewModel.isWordInFailedDatabase(testWord.english)){
+                    viewModel.incrementTraining(testWord.english)
                 }
             }
         }
@@ -1676,11 +1686,20 @@ fun ResultsScreen(
                 ) {
                     if(selectedMode != "Description") {
                         IconButton(onClick = {
-                            navController.navigate(
-                                "WordTrainingScreen/$wordCount/$selectedType/${
-                                    convertWordsToJson(learnedWords)
-                                }/Refresh"
-                            )
+                            if(selectedType != "Mistakes") {
+                                navController.navigate(
+                                    "WordTrainingScreen/$wordCount/$selectedType/${
+                                        convertWordsToJson(learnedWords)
+                                    }/Refresh"
+                                )
+                            }
+                            else{
+                                navController.navigate(
+                                    "WordTrainingScreen/$wordCount/$selectedType/${
+                                        convertWordsToJson(learnedWords)
+                                    }/RefreshMistakes"
+                                )
+                            }
                         }) {
                             Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                         }

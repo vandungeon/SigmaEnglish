@@ -295,9 +295,6 @@ fun PreviewWordListScreen() {
 fun ResultsPreview(){
     SigmaEnglishTheme {
 
-
-        val timeSpent = 10
-        val selectedType = "Standart"
         val sampleWords: List<TestWord> = listOf(
             TestWord(english = "apple", russian = "яблоко", description = "A sweet fruit", true),
             TestWord(

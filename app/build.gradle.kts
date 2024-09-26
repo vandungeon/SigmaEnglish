@@ -53,19 +53,16 @@ android {
 }
 
 dependencies {
-    implementation("com.google.dagger:hilt-android:2.51.1")
+    implementation(libs.hilt.android)
     implementation(libs.androidx.constraintlayout.core)
-    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
-    implementation(libs.hilt.android.v248)
+    kapt(libs.hilt.android.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.databinding.adapters)
     implementation(libs.firebase.crashlytics.buildtools)
     annotationProcessor(libs.androidx.room.compiler)
     implementation(libs.gson)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.hilt.android)
-    kapt(libs.hilt.android.compiler)
 
 
     ksp(libs.androidx.room.compiler)
@@ -93,7 +90,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.extensions)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
-    implementation(libs.hilt.android.v252)
     kapt (libs.hilt.compiler)
     androidTestImplementation(libs.androidx.junit.v121)
     androidTestImplementation(libs.androidx.espresso.core.v361)
@@ -119,7 +115,6 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)

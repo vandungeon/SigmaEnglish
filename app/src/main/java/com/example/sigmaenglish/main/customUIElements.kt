@@ -2,6 +2,7 @@ package com.example.sigmaenglish.main
 
 import android.util.Log
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -69,7 +70,9 @@ import com.example.sigmaenglish.ui.theme.montserratFontFamily
 import com.example.sigmaenglish.ui.theme.standartText
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.painter.Painter
 
 @Composable
@@ -103,18 +106,30 @@ data class ExpandableItem(
 @Composable
 fun ExpandableItemComposable(item: ExpandableItem, level: Int = 0) {
     var expanded by remember { mutableStateOf(false) }
-
+    val rotationAngle by animateFloatAsState(targetValue = if (expanded) 180f else 0f)
     Column(
         modifier = Modifier
             .animateContentSize()
             .padding(start = (level * 16).dp)
     ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically, // Center the icon and text
+            modifier = Modifier
+                .clickable { expanded = !expanded }
+        ) {
             Text(
                 text = item.title,
-                fontFamily = montserratFontFamily, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clickable { expanded = !expanded }
+                fontFamily = montserratFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f) // Makes text take up remaining space
             )
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowUp,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                modifier = Modifier.rotate(rotationAngle), // Rotate the icon
+                tint = Color.Black
+            )
+        }
 
             if (expanded) {
                 item.content?.let { content ->
@@ -223,7 +238,7 @@ fun RowScope.TableCellHeader(
 }
 
 @Composable
-fun AddWordDialog(viewModel: ViewModel,
+fun AddWordDialog(
     onConfirm: (english: String, russian: String, description: String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -232,7 +247,8 @@ fun AddWordDialog(viewModel: ViewModel,
     var russianWord by remember { mutableStateOf("") }
     var enableButton by remember { mutableStateOf(false) }
     fun validateInput(eng: String, rus: String): Boolean {
-        return eng.isNotEmpty() and rus.isNotEmpty() && !rus.contains(" ")
+        return eng.isNotEmpty() and rus.isNotEmpty() && !rus.contains(Regex(" \\S+")) && !eng.contains(Regex(" \\S+"))
+
     }
     AlertDialog(
         containerColor = colorScheme.primaryContainer,
@@ -243,14 +259,16 @@ fun AddWordDialog(viewModel: ViewModel,
                 TextField(
                     value = englishWord,
                     onValueChange = { englishWord = it
-                        if(validateInput(englishWord, russianWord)){enableButton =true}},
+                        enableButton = validateInput(englishWord, russianWord)
+                    },
                     label = { Text("English") }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
                     value = russianWord,
                     onValueChange = { russianWord = it
-                        if(validateInput(englishWord, russianWord)){enableButton =true}},
+                        enableButton = validateInput(englishWord, russianWord)
+                    },
                     label = { Text("Russian") }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -349,17 +367,12 @@ fun Hint(
 @Composable
 fun ModeCard(
     mode: String,
-    selectedScreen: String,
-    onSelect: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier) {
     SigmaEnglishTheme {
         Card(
             modifier = modifier
-                .clickable(onClick = onSelect),
-            border = BorderStroke(
-                2.dp,
-                if (mode == selectedScreen) Color.Black else Color.Transparent
-            ),
+                .clickable(onClick = onClick),
             elevation = CardDefaults.elevatedCardElevation(4.dp),
             shape = RoundedCornerShape(8.dp),
             colors = CardColors(
@@ -418,7 +431,8 @@ fun WordManagementDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
                     value = translationDescription,
-                    onValueChange = { translationDescription = it },
+                    onValueChange = { translationDescription = it
+                        if(validateInput(englishWord, russianWord)){enableButton = true}},
                     label = { Text("Description") }
                 )
             }
@@ -430,8 +444,8 @@ fun WordManagementDialog(
                 // Handle word update
                 onUpdate(
                     word.copy(
-                        english = englishWord,
-                        russian = russianWord,
+                        english = englishWord.trimEnd(),
+                        russian = russianWord.trimEnd(),
                         description = translationDescription
                     )
                 )

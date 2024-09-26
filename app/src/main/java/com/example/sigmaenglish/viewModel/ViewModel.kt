@@ -24,8 +24,6 @@ class ViewModel @Inject constructor(
 ) : AndroidViewModel(application) {
 
 
-    val manager = preferencesManager
-
     val highestScore: LiveData<Int> = preferencesManager.highestStreakFlow.asLiveData()
     private val repository: Repository
     private val wordDAO = WordDatabase.getDatabase(application).dao()
@@ -37,8 +35,7 @@ class ViewModel @Inject constructor(
     val wordsFailed: LiveData<List<DBType.WordsFailed>> = _wordsFailed
 
     // MutableState for managing UI text input
-    private val _state = mutableStateOf(ScreenState())
-    val state: ScreenState get() = _state.value
+
 
     private val _isInitialized = mutableStateOf(false)
     val isInitialized: Boolean get() = _isInitialized.value
@@ -47,20 +44,18 @@ class ViewModel @Inject constructor(
         repository = Repository(wordDAO)
         _words.addSource(repository.readAllData) { words ->
             _words.value = words
-            _state.value = _state.value.copy(words = words)
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Words updated: $words")
             checkInitialization()
         }
         _wordsFailed.addSource(repository.readAllDataFailed) { wordsFailed ->
             _wordsFailed.value = wordsFailed
-            _state.value = _state.value.copy(wordsFailed = wordsFailed)
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Words updated: $wordsFailed")
             checkInitialization()
         }
     }
 
     private fun checkInitialization() {
-        if (_words.value != null && _wordsFailed.value != null) {
+        if (_words.value != null) {
             _isInitialized.value = true
         }
     }
@@ -71,6 +66,7 @@ class ViewModel @Inject constructor(
             repository.insertWord(word)
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Word added successfully")
         }
+        refreshData()
     }
 
     fun deleteWord(word: DBType.Word) {
@@ -79,6 +75,7 @@ class ViewModel @Inject constructor(
             repository.deleteWord(word)
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Word deleted successfully")
         }
+        refreshData()
     }
     fun updateWord(word: DBType.Word) {
         Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Updating word: ${word.english}")
@@ -86,6 +83,7 @@ class ViewModel @Inject constructor(
             repository.updateWord(word)
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Word updated successfully")
         }
+        refreshData()
     }
 
     fun updateWordFailed(word: DBType.WordsFailed) {
@@ -94,6 +92,7 @@ class ViewModel @Inject constructor(
             repository.updateWordFailed(word)
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Word updated successfully")
         }
+        refreshData()
     }
 
     fun addWordFailed(word: DBType.WordsFailed) {
@@ -102,20 +101,22 @@ class ViewModel @Inject constructor(
             repository.insertWordFailed(word)
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Failed word added successfully")
         }
+        refreshData()
     }
 
     fun incrementTraining(word: String) {
-        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checking for deletion")
+        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Incrementing training times")
         viewModelScope.launch(Dispatchers.IO) {
             repository.incrementTraining(word)
-            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checked for deletion successfully")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Incremented successfully")
         }
+
     }
     fun decrementTraining(word: String) {
-        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checking for deletion")
+        Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Decrementing training times")
         viewModelScope.launch(Dispatchers.IO) {
             repository.decrementTraining(word)
-            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checked for deletion successfully")
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Decremented successfully")
         }
     }
     suspend fun isWordInFailedDatabase(englishWord: String): Boolean {
@@ -123,16 +124,20 @@ class ViewModel @Inject constructor(
             repository.isWordInFailedDatabase(englishWord)
         }
     }
-
+    suspend fun getWordIdIfExists(word: String) : Int?
+    {
+        return repository.getWordIdIfExists(word)
+    }
     fun checkForDeletion() {
         Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checking for deletion")
         viewModelScope.launch(Dispatchers.IO) {
             repository.checkForDeletion()
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checked for deletion successfully")
         }
+        refreshData()
     }
     fun checkForUpdatesHS(newStreak: Int) {
-        viewModelScope.launch() {
+        viewModelScope.launch {
             preferencesManager.checkForUpdateHS(getApplication(), newStreak)
         }
     }
@@ -141,10 +146,25 @@ class ViewModel @Inject constructor(
             repository.deleteMistakenWord(englishWord)
             Log.d("Viewmodel", "Deletion of mistaken word issued")
         }
+        refreshData()
     }
     fun deleteAllMistakenWords(){
         viewModelScope.launch(Dispatchers.IO) {
             repository.deleteAllMistakenWords()
         }
+        refreshData()
     }
+    private fun refreshData() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val updatedWords = repository.readAllData
+            val updatedWordsFailed = repository.readAllDataFailed
+
+            withContext(Dispatchers.Main) {
+                _words.value = updatedWords.value
+                _wordsFailed.value = updatedWordsFailed.value
+                Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Data refreshed")
+            }
+        }
+    }
+
 }
