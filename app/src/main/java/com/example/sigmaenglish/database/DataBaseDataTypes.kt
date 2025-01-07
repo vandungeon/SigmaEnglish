@@ -10,7 +10,8 @@ class DBType {
         val russian: String,
         @PrimaryKey(autoGenerate = true)
         val id: Int = 0,
-        val description: String
+        val description: String,
+        val favorite: Boolean = false
     )
     @Entity
     data class WordsFailed(

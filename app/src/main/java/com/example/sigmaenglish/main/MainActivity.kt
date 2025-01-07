@@ -2,6 +2,7 @@ package com.example.sigmaenglish.main
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.icu.text.ListFormatter.Width
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -43,8 +44,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
@@ -75,6 +81,8 @@ import com.example.sigmaenglish.navigation.GuideChapters
 import com.example.sigmaenglish.navigation.GuideChapters.MainScreenGuide
 import com.example.sigmaenglish.navigation.NavigationComponent
 import com.example.sigmaenglish.navigation.convertWordsToJson
+import com.example.sigmaenglish.ui.theme.GoldSchemeBrown
+import com.example.sigmaenglish.ui.theme.GoldSchemeWhite
 import com.example.sigmaenglish.ui.theme.PastelGreen
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
 import com.example.sigmaenglish.ui.theme.WrongRed
@@ -88,6 +96,9 @@ import kotlinx.coroutines.Delay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.core.content.ContentProviderCompat.requireContext
 
 
 data class TestWord(
@@ -231,11 +242,33 @@ fun ScreenGuide(navController: NavHostController) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
+    val context = LocalContext.current
+    val focusRequester = remember { FocusRequester() }
+    val isKeyboardVisible = rememberKeyboardVisibilityObserver()
+    val focusManager = LocalFocusManager.current
     val wordList by viewModel.words.observeAsState(emptyList())
     var addWordDialog by remember { mutableStateOf(false) }
     var selectedWord by remember { mutableStateOf<DBType.Word?>(null) }
     var importFromNotesDialog by remember { mutableStateOf(false) }
+    var exportWordsDialog by remember { mutableStateOf(false) }
     var resetMistakesListDialog by remember { mutableStateOf(false)}
+    var isSortingDialogEnabled by remember { mutableStateOf(false) }
+    val sortingOptions = listOf("Alphabetical ascending", "Alphabetical descending", "Newest", "Oldest", "Favorites")
+    var selectedOption by remember { mutableStateOf<String>("Newest") }
+    var searchText by remember {
+        mutableStateOf("")
+    }
+    val filteredList = wordList.filter{
+        it.english.contains(searchText, ignoreCase = true) or it.russian.contains(searchText, ignoreCase = true)
+    }
+    val sortedList = when (selectedOption) {
+        "Alphabetical ascending" -> filteredList.sortedBy { it.english }
+        "Alphabetical descending" -> filteredList.sortedByDescending { it.english }
+        "Newest" -> filteredList.sortedByDescending { it.id }
+        "Oldest" -> filteredList.sortedBy { it.id }
+        "Favorites" -> filteredList.filter { it.favorite }
+        else -> filteredList
+    }
     BackHandler {
         navController.navigate("start")
     }
@@ -247,34 +280,118 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                     titleContentColor = colorScheme.primary,
                 ),
                 title = {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Words list", modifier = Modifier.padding(vertical = 10.dp), fontFamily = montserratFontFamily, fontWeight = FontWeight.SemiBold)
-                        Row {
-                            IconButton(onClick = {
-                                resetMistakesListDialog  = true
-                            }) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Exit")
-                            }
-                            IconButton(onClick = {
-                                importFromNotesDialog = true
-                            }) {
-                                Icon(Icons.Default.Edit, contentDescription = "import from notes")
-                            }
-                            IconButton(onClick = {
-                                navController.navigate("start") {
-                                    popUpTo("start") { inclusive = true }
+                    Column(modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(vertical = 8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Words list", modifier = Modifier.padding(vertical = 10.dp), fontFamily = montserratFontFamily, fontWeight = FontWeight.SemiBold)
+                            Row {
+                                IconButton(onClick = {
+                                    resetMistakesListDialog  = true
+                                }) {
+                                    Icon(Icons.Default.Refresh, contentDescription = "Exit")
                                 }
+                                IconButton(onClick = {
+                                    importFromNotesDialog = true
+                                }) {
+                                    Icon(Icons.Default.Edit, contentDescription = "import from notes")
+                                }
+                                IconButton(onClick = {
+                                    exportWordsDialog = true
+                                }) {
+                                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "import from notes")
+                                }
+                                IconButton(onClick = {
+                                    navController.navigate("start") {
+                                        popUpTo("start") { inclusive = true }
+                                    }
+                                }) {
+                                    Icon(Icons.Default.Home, contentDescription = "Exit")
+                                }
+                            }
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(colorScheme.secondary),
+                                modifier = Modifier
+                                    .clickable(onClick = { })
+                                    .padding(all = 0.dp)
+                                    .border(
+                                        BorderStroke(2.dp, color = colorScheme.tertiary),
+                                        shape = RoundedCornerShape(16.dp)
+                                    ),
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(all = 0.dp)
+                                        .width(260.dp)
+                                ) {
+                                    Spacer(modifier = Modifier.width(20.dp))
+                                    Icon(Icons.Default.Search, contentDescription = "Search", tint = GoldSchemeWhite, modifier = Modifier.padding(vertical = 16.dp, horizontal = 0.dp))
+
+                                    TextField(
+                                        value = searchText,
+                                        onValueChange = { newText -> searchText = newText },
+                                        placeholder = {
+                                            Text(
+                                                color = colorScheme.tertiary,
+                                                text = "Search",
+                                                style = TextStyle(
+                                                    fontFamily = montserratFontFamily,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontStyle = FontStyle.Normal,
+                                                    fontSize = 14.sp
+                                                ),
+                                                modifier = Modifier.padding(horizontal = 0.dp)
+                                            )
+                                        },
+                                        textStyle = TextStyle(
+                                            fontFamily = montserratFontFamily,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontStyle = FontStyle.Normal,
+                                            fontSize = 14.sp
+                                        ),
+                                        modifier = Modifier
+                                            .padding(horizontal = 0.dp)
+                                            .fillMaxWidth()
+                                            .fillMaxHeight()
+                                            .focusRequester(focusRequester),
+
+                                        colors = TextFieldDefaults.colors(
+                                            focusedTextColor = GoldSchemeWhite,
+                                            focusedIndicatorColor = Color.Transparent,
+                                            unfocusedIndicatorColor = Color.Transparent,
+                                            focusedContainerColor = Color.Transparent,
+                                            unfocusedContainerColor = Color.Transparent
+
+                                        ),
+
+
+                                    )
+                                }
+
+
+
+                            }
+                            IconButton(onClick = { isSortingDialogEnabled = true
                             }) {
-                                Icon(Icons.Default.Home, contentDescription = "Exit")
+                                Icon(Icons.Default.Menu, contentDescription = "Exit", tint = GoldSchemeWhite)
                             }
                         }
                     }
-                }
+
+                }, modifier = Modifier.fillMaxHeight(0.23f)
 
             )
         },
@@ -308,7 +425,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                             TableCellHeader(text = "Translation", weight = 1f)
                         }
                     }
-                    itemsIndexed(wordList) { index, word ->
+                    itemsIndexed(sortedList) { index, word ->
                         var isExpanded by remember { mutableStateOf(false) }
 
                         Column(
@@ -329,27 +446,57 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                                 TableCell(text = word.english, weight = 1f)
                                 TableCell(text = word.russian, weight = 1f)
                             }
-                            if(index == wordList.size - 1 )HorizontalDivider(thickness = 1.dp, color = colorScheme.secondary)
+                            if(index == sortedList.size - 1 )HorizontalDivider(thickness = 1.dp, color = colorScheme.secondary)
                             Crossfade(
                                 targetState = isExpanded,
                                 animationSpec = tween(durationMillis = 300)
                             ) { expanded ->
                                 if (expanded) {
+                                    var isFavorite = word.favorite
                                     Row(
-                                        modifier = Modifier.padding(16.dp)
+                                        modifier = Modifier
+                                            .padding(16.dp)
+                                            .fillMaxWidth(1f), horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Info,
-                                            tint = Color.Black,
-                                            contentDescription = "Info",
-                                            modifier = Modifier.padding(horizontal = 0.dp)
-                                        )
-                                        Text(
-                                            color = colorScheme.primaryContainer,
-                                            style = standartText,
-                                            text = word.description,
-                                            modifier = Modifier.padding(horizontal = 10.dp)
-                                        )
+                                        Box(){
+                                            Icon(
+                                                imageVector = Icons.Default.Info,
+                                                tint = Color.Black,
+                                                contentDescription = "Info",
+                                                modifier = Modifier.padding(horizontal = 0.dp)
+                                            )
+                                            Text(
+                                                color = colorScheme.primaryContainer,
+                                                style = standartText,
+                                                text = word.description,
+                                                modifier = Modifier.padding(horizontal = 32.dp)
+                                            )
+                                        }
+
+                                        IconButton(onClick = {
+                                            isFavorite = !isFavorite
+
+                                            viewModel.updateWord(word.copy(
+                                                favorite = isFavorite
+                                            ))
+                                        }) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                // Larger star for the outline
+                                                Icon(
+                                                    imageVector = Icons.Filled.Star,
+                                                    contentDescription = null,
+                                                    tint = GoldSchemeBrown,
+                                                    modifier = Modifier.size(28.dp)
+                                                )
+                                                // Smaller star for the main icon
+                                                Icon(
+                                                    imageVector = Icons.Filled.Star,
+                                                    contentDescription = if (isFavorite) "Unmark as favorite" else "Mark as favorite",
+                                                    tint = if (isFavorite) GoldSchemeBrown else GoldSchemeWhite,
+                                                    modifier = Modifier.size(22.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -361,7 +508,11 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
             }
         }
     }
-
+    LaunchedEffect(isKeyboardVisible.value) {
+        if (!isKeyboardVisible.value) {
+            focusManager.clearFocus()
+        }
+    }
     if (addWordDialog) {
         AddWordDialog(
             onConfirm = { english, russian, description ->
@@ -369,6 +520,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                     english = english.trimEnd(),
                     russian = russian.trimEnd(),
                     description = description,
+                    favorite = false
                 )
                 viewModel.addWord(word)
                 addWordDialog = false
@@ -384,11 +536,17 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                         english = word.original,
                         russian = word.translation,
                         description = word.description,
+                        favorite = false
                     )
                     viewModel.addWord(newWord)
                 }
             },
             onDismiss = { importFromNotesDialog = false }
+        )
+    }
+    if (exportWordsDialog) {
+        ExportWordsDialog(
+            onDismiss = { exportWordsDialog = false }, context = context, wordsFormated = viewModel.getWordsExportString()
         )
     }
             selectedWord?.let { word ->
@@ -428,7 +586,15 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                 )
             }
 
-
+    if (isSortingDialogEnabled){
+        OptionDialog(options = sortingOptions, onOptionSelected = {
+            option -> selectedOption = option
+            isSortingDialogEnabled = false
+        },
+            onDismiss = {
+                isSortingDialogEnabled = false
+            }, selectedOption = selectedOption)
+    }
     if (resetMistakesListDialog) {
         AlertDialog(
             shape = RoundedCornerShape(16.dp),
@@ -500,6 +666,11 @@ fun TrainingMenu(navController: NavHostController) {
                     ModeCard(
                         mode = "Zen  \uD83C\uDF43",
                         onClick = { navController.navigate("WordTrainingScreenZen") },
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                    ModeCard(
+                        mode = "Favorites  ⭐",
+                        onClick = { navController.navigate("settings/Favorites") },
                         modifier = Modifier.padding(top = 16.dp)
                     )
                 }
@@ -622,6 +793,9 @@ fun SettingsScreen(navController: NavHostController, trainingType: String) {
                             "Description" -> {
                                 navController.navigate("WordTrainingScreenDescription/$selectedNumber/$selectedType")
                             }
+                            "Favorites" -> {
+                                navController.navigate("WordTrainingScreen/$selectedNumber/$selectedType/$mockList/Favorites")
+                            }
                         }
                     }
                 )
@@ -677,8 +851,29 @@ fun WordTrainingScreen(
                     wordsRefresh
                 }
                 wordSourse == "Classic" -> {
-                    val takenWords = wordList.map { TestWord(it.english, it.russian, it.description, true) }.takeLast(wordLimit)
-                    takenWords.shuffled()
+                    if(type == "last10" || type == "last25"){
+                        val takenWords = wordList.map { TestWord(it.english, it.russian, it.description, true) }.takeLast(wordLimit)
+                        takenWords.shuffled()
+                    }
+                    else{
+                        val takenWords = wordList.map { TestWord(it.english, it.russian, it.description, true) }.shuffled()
+                        takenWords.takeLast(wordLimit)
+                    }
+                }
+                wordSourse == "Favorites" -> {
+                    if(type == "last10" || type == "last25") {
+                        val takenWords = wordList
+                            .filter { it.favorite }
+                            .map { TestWord(it.english, it.russian, it.description, true) }
+                        takenWords.takeLast(wordLimit).shuffled()
+                    }
+                    else {
+                        val takenWords = wordList
+                            .filter { it.favorite }
+                            .map { TestWord(it.english, it.russian, it.description, true) }
+
+                        takenWords.shuffled().takeLast(wordLimit)
+                    }
                 }
                 else -> {
                     val takenWords = wordListFailed.map { TestWord(it.english, it.russian, it.description, true) }.takeLast(wordLimit)
@@ -705,6 +900,7 @@ fun WordTrainingScreen(
     }
 
     var isAlertDialogEnabled by remember { mutableStateOf(false) }
+
 
     var textfield by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
@@ -734,6 +930,9 @@ fun WordTrainingScreen(
         }
         else if (wordSourse == "Mistakes" && viewModel.isInitialized){
             isSourceEmpty = viewModel.wordsFailed.value.isNullOrEmpty()
+        }
+        else if (wordSourse == "Favorites" && viewModel.isInitialized){
+            isSourceEmpty = viewModel.words.value?.none { it.favorite } ?: true
         }
         CircularProgressIndicator(
             modifier = Modifier
@@ -801,7 +1000,7 @@ fun WordTrainingScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp), 
+                                .height(56.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(

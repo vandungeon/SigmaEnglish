@@ -2,6 +2,8 @@ package com.example.sigmaenglish.viewModel
 
 import android.app.Application
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -34,7 +36,6 @@ class ViewModel @Inject constructor(
     private val _wordsFailed = MediatorLiveData<List<DBType.WordsFailed>>()
     val wordsFailed: LiveData<List<DBType.WordsFailed>> = _wordsFailed
 
-    // MutableState for managing UI text input
 
 
     private val _isInitialized = mutableStateOf(false)
@@ -135,6 +136,16 @@ class ViewModel @Inject constructor(
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Checked for deletion successfully")
         }
         refreshData()
+    }
+    fun getWordsExportString () : String {
+        val bufferList: List<DBType.Word>? = words.value
+        var exportString = ""
+        if(!bufferList.isNullOrEmpty()) {
+            bufferList.forEach { testWord ->
+                exportString += testWord.english + " - " + testWord.russian + " (" + testWord.description+  ")"
+            }
+        }
+        return exportString
     }
     fun checkForUpdatesHS(newStreak: Int) {
         viewModelScope.launch {

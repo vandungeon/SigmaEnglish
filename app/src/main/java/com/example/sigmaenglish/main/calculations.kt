@@ -1,5 +1,8 @@
 package com.example.sigmaenglish.main
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.graphics.Rect
 import android.view.ViewTreeObserver
 import androidx.compose.foundation.lazy.LazyListState
@@ -31,7 +34,7 @@ fun stringParser(string: String): MutableList<TemplateWord> {
 
     val wordsList = mutableListOf<TemplateWord>()
 
-    val regex = Regex("""([A-Za-zА-Яа-я']+)\s*-\s*([A-Za-zА-Яа-я\s'-]+)(?:\s*\(([^)]+)\))?""")
+    val regex = Regex("""([A-Za-zА-Яа-я'-]+)\s*-\s*([A-Za-zА-Яа-я'-]+)\s*(?:\s*\(([^)]+)\))?""")
 
     string.lines().forEach { line ->
         regex.matchEntire(line.trim())?.destructured?.let { (original, secondPart, thirdPart) ->
@@ -67,7 +70,11 @@ fun checkForBlanks(list: List<TemplateWord>): MutableList<Int> {
 fun checkAnswer(userAnswer: String, correctAnswer: String): Boolean {
     return userAnswer.trim().equals(correctAnswer.trim(), ignoreCase = true)
 }
-
+fun copyTextToClipboard(context: Context, label: String, text: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clip = ClipData.newPlainText(label, text)
+    clipboard.setPrimaryClip(clip)
+}
 @Composable
 fun rememberKeyboardVisibilityObserver(): State<Boolean> {
     val isKeyboardVisible = remember { mutableStateOf(false) }

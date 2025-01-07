@@ -1,5 +1,8 @@
 package com.example.sigmaenglish.main
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.util.Log
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -74,6 +78,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.painter.Painter
+import com.example.sigmaenglish.ui.theme.GoldSchemeBlack
+import com.example.sigmaenglish.ui.theme.GoldSchemeYellow
 
 @Composable
 fun LogoImage() {
@@ -86,14 +92,18 @@ fun LogoImage() {
 }
 @Composable
 fun GuideImage(painter: Painter) {
-    HorizontalDivider(modifier = Modifier.fillMaxWidth(1f).padding(top = 8.dp), color = colorScheme.primaryContainer)
+    HorizontalDivider(modifier = Modifier
+        .fillMaxWidth(1f)
+        .padding(top = 8.dp), color = colorScheme.primaryContainer)
     Image(
         painter = painter,
         contentDescription = "My PNG Image",
         contentScale = ContentScale.Fit,
         modifier = Modifier.size(300.dp)
     )
-    HorizontalDivider(modifier = Modifier.fillMaxWidth(1f).padding(bottom = 8.dp), color = colorScheme.primaryContainer)
+    HorizontalDivider(modifier = Modifier
+        .fillMaxWidth(1f)
+        .padding(bottom = 8.dp), color = colorScheme.primaryContainer)
 }
 
 
@@ -146,7 +156,10 @@ fun ExpandableItemComposable(item: ExpandableItem, level: Int = 0) {
 fun ExpandableList(items: List<ExpandableItem>) {
     LazyColumn(
         contentPadding = PaddingValues(8.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 16.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(top = 16.dp)
     ) {
         items(items) { item ->
             ExpandableItemComposable(item)
@@ -504,7 +517,7 @@ fun ImportWordsDialog(
                 Spacer(modifier = Modifier.height(16.dp))
                 // Code-style text
                 Text(
-                    "Word - Translation - Description",
+                    "Word - Translation (Description)",
                     style = code
                 )
             }
@@ -725,3 +738,118 @@ fun ImportWordsDialog(
         }
     )
 }
+@Composable
+fun ExportWordsDialog(
+    onDismiss: () -> Unit,
+    wordsFormated: String,
+    context: Context
+) {
+    val code = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
+    )
+    val clipboardText = wordsFormated
+    var enableButton by remember { mutableStateOf(wordsFormated.isNotEmpty()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colorScheme.primaryContainer,
+        title = {
+            Column {
+                if(enableButton) {
+                    Text(
+                        "Export words to clipboard",
+                        style = dialogHeader
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Your words will be copied to clipboard in format shown below:",
+                        style = dialogMain
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Word - Translation (Description)",
+                        style = code
+                    )
+                }
+                else {
+                    Text(
+                        "Export words to clipboard",
+                        style = dialogHeader
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "You are missing the words to export them, consider adding them.",
+                        style = dialogMain
+                    )
+                }
+
+            }
+
+        },
+        text = {},
+        confirmButton = {
+            CustomButton(
+                enabled = enableButton,
+                onClick = {
+                    copyTextToClipboard(context, "Exported words", clipboardText);
+                    onDismiss()
+                },text ="Copy words")
+        },
+        dismissButton = {
+            CustomButton(
+                onClick = onDismiss
+                ,text ="Cancel")
+        }
+    )
+
+}
+@Composable
+fun OptionDialog(
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+
+    var _selectedOption by remember { mutableStateOf<String>(selectedOption) }
+
+    AlertDialog(
+        containerColor = colorScheme.primaryContainer,
+        onDismissRequest = { onDismiss() },
+        title = { Text("Choose how to sort words", style = dialogHeader) },
+        text = {
+            LazyColumn {
+                items(options) { option ->
+                    Text(
+                        text = "•   $option",
+                        style = if (option == _selectedOption) {TextStyle(
+                            fontFamily = interFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            color = GoldSchemeYellow,
+                            fontSize = 18.sp
+                        )} else {
+                            standartText
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clickable {
+                                _selectedOption = option
+                                onOptionSelected(option)
+                                onDismiss()
+                            }
+                    )
+                    HorizontalDivider(modifier = Modifier.fillMaxWidth())
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onDismiss() }, colors = customButtonColors()) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+

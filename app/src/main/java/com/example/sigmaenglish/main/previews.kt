@@ -23,12 +23,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -66,6 +68,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.sigmaenglish.database.DBType
+import com.example.sigmaenglish.ui.theme.GoldSchemeWhite
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
 import com.example.sigmaenglish.ui.theme.interFontFamily
 import com.example.sigmaenglish.ui.theme.montserratFontFamily
@@ -223,6 +226,7 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
                     }
 
                 }
+                SearchTextField(searchText = "sample", onSearchTextChange = {})
             }
             Button(
                 onClick = { /* Handle click */ },
@@ -240,7 +244,9 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
             ) {
                 Text(
                     "option",
-                    modifier = Modifier.fillMaxWidth().padding(3.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(3.dp),
                     textAlign = TextAlign.Center,
                     style = TextStyle(
                         fontFamily = interFontFamily,
@@ -252,6 +258,69 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
             }
 
         }
+    }
+}
+
+
+@Composable
+fun SearchTextField(
+    searchText: String,
+    onSearchTextChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .padding(all = 8.dp)
+            .width(260.dp)
+    ) {
+        // Icon to the left of the TextField
+        Icon(Icons.Default.Search, contentDescription = "Search", tint = GoldSchemeWhite)
+
+        // BasicTextField for input with decoration box
+        BasicTextField(
+            value = searchText,
+            onValueChange = { newText -> onSearchTextChange(newText) },
+            textStyle = TextStyle(
+                fontFamily = montserratFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontStyle = FontStyle.Normal,
+                fontSize = 14.sp
+            ),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .border(
+                            2.dp,
+                            Color.Gray,
+                            shape = RoundedCornerShape(16.dp)
+                        ) // Optional border
+                        .background(Color.Transparent) // Set background as transparent
+                ) {
+                    // Show placeholder when the searchText is empty
+                    if (searchText.isEmpty()) {
+                        Text(
+                            color = colorScheme.tertiary,
+                            text = "Search",
+                            style = TextStyle(
+                                fontFamily = montserratFontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                fontStyle = FontStyle.Normal,
+                                fontSize = 14.sp
+                            ),
+                            modifier = Modifier
+                                .padding(horizontal = 10.dp)
+                        )
+                    }
+                    // Show actual text input when available
+                    innerTextField() // The actual editable content
+                }
+            },
+            modifier = Modifier
+                .padding(horizontal = 10.dp)
+                .fillMaxWidth()
+        )
     }
 }
 

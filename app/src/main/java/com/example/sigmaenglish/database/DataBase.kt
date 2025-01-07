@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [DBType.Word::class, DBType.WordsFailed::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -59,15 +59,4 @@ class Converters {
         Log.d("Converter", "returning value ${mutableStateOf(value)}")
     }
 }
-val MIGRATION_2_3 = object : Migration(1, 2) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL(
-            "CREATE TABLE IF NOT EXISTS WordsFailed (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
-                    "english TEXT NOT NULL," +
-                    "russian TEXT NOT NULL," +
-                    "description TEXT NOT NULL DEFAULT ''," +
-                    "timesPractised INTEGER NOT NULL DEFAULT 0)"
-        )
-    }
-}
+
