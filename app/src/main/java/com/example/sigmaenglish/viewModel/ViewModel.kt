@@ -1,6 +1,7 @@
 package com.example.sigmaenglish.viewModel
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -36,7 +37,7 @@ class ViewModel @Inject constructor(
     private val _wordsFailed = MediatorLiveData<List<DBType.WordsFailed>>()
     val wordsFailed: LiveData<List<DBType.WordsFailed>> = _wordsFailed
 
-
+    private val context: Context get() = getApplication<Application>().applicationContext
 
     private val _isInitialized = mutableStateOf(false)
     val isInitialized: Boolean get() = _isInitialized.value
@@ -142,7 +143,7 @@ class ViewModel @Inject constructor(
         var exportString = ""
         if(!bufferList.isNullOrEmpty()) {
             bufferList.forEach { testWord ->
-                exportString += testWord.english + " - " + testWord.russian + " (" + testWord.description+  ")"
+                exportString += testWord.english + " - " + testWord.russian + " (" + testWord.description+  ")\n"
             }
         }
         return exportString
@@ -176,6 +177,11 @@ class ViewModel @Inject constructor(
                 Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Data refreshed")
             }
         }
+    }
+    fun isTablet(): Boolean {
+        val metrics = context.resources.displayMetrics
+        val widthDp = metrics.widthPixels / metrics.density
+        return widthDp >= 600
     }
 
 }

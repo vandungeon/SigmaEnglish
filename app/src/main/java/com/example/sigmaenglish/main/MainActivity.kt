@@ -2,6 +2,7 @@ package com.example.sigmaenglish.main
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.icu.text.ListFormatter.Width
 import android.os.Bundle
 import android.util.Log
@@ -242,6 +243,7 @@ fun ScreenGuide(navController: NavHostController) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
+
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
     val isKeyboardVisible = rememberKeyboardVisibilityObserver()
@@ -281,7 +283,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                 ),
                 title = {
                     Column(modifier = Modifier
-                        .fillMaxHeight()
+                        .height(150.dp)
                         .padding(vertical = 8.dp)) {
                         Row(
                             modifier = Modifier
@@ -336,10 +338,10 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                                     modifier = Modifier
                                         .padding(all = 0.dp)
                                         .width(260.dp)
+                                        .height(58.dp)
                                 ) {
                                     Spacer(modifier = Modifier.width(20.dp))
                                     Icon(Icons.Default.Search, contentDescription = "Search", tint = GoldSchemeWhite, modifier = Modifier.padding(vertical = 16.dp, horizontal = 0.dp))
-
                                     TextField(
                                         value = searchText,
                                         onValueChange = { newText -> searchText = newText },
@@ -380,9 +382,6 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
 
                                     )
                                 }
-
-
-
                             }
                             IconButton(onClick = { isSortingDialogEnabled = true
                             }) {
@@ -391,7 +390,12 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                         }
                     }
 
-                }, modifier = Modifier.fillMaxHeight(0.23f)
+                }, modifier = Modifier.fillMaxHeight(
+                    if(viewModel.isTablet()){0.16f
+                    }
+                    else {
+                        0.23f
+                    })
 
             )
         },
@@ -942,7 +946,6 @@ fun WordTrainingScreen(
         Log.d("Loading screen", "Words didn't initialize, source is set to $wordSourse, isSourceEmpty is $isSourceEmpty")
     }
     else {
-
             Scaffold(
                 modifier = Modifier
                     .background(colorScheme.primary),
@@ -1023,65 +1026,84 @@ fun WordTrainingScreen(
                     }
                 }
             ) {
-                LaunchedEffect(isKeyboardVisible.value) {
-                    if (!isKeyboardVisible.value) {
-                        focusManager.clearFocus()
+                Column() {
+                    Column(modifier = Modifier.height(150.dp)) {
+                        LaunchedEffect(isKeyboardVisible.value) {
+                            if (!isKeyboardVisible.value) {
+                                focusManager.clearFocus()
+                            }
+                        }
+                        Text(
+                            "${currentWordIndex + 1}/${words.size}",
+                            fontSize = 50.sp,
+                            modifier = Modifier
+                                .padding(top = 40.dp)
+                                .padding(horizontal = 26.dp),
+                            style = TextStyle(fontFamily = interFontFamily),
+                            color = colorScheme.secondary
+                        )
+                        if (isKeyboardVisible.value) {
+                            /*if (viewModel.isTablet()) {
+                                Spacer(modifier = Modifier.height(800.dp))
+                            } else {*/
+                                Spacer(modifier = Modifier.height(200.dp))
+                           /* }*/
+                        }
                     }
-                }
-                Text(
-                    "${currentWordIndex + 1}/${words.size}",
-                    fontSize = 50.sp,
-                    modifier = Modifier
-                        .padding(top = 40.dp)
-                        .padding(horizontal = 26.dp),
-                    style = TextStyle(fontFamily = interFontFamily),
-                    color = colorScheme.secondary
-                )
-                if(isKeyboardVisible.value){
-                    Spacer(modifier = Modifier.height(200.dp)) // Adjust height as needed.
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                        .padding(vertical = 250.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    AnimatedContent(
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        targetState = currentWordIndex,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
-                                slideOutHorizontally { width -> -width } + fadeOut()
+                            .fillMaxHeight(0.7f)
+                            .fillMaxWidth(1f)
+                            .padding(horizontal = 16.dp)
+                            .padding(vertical = 100.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        AnimatedContent(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            targetState = currentWordIndex,
+                            transitionSpec = {
+                                (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                                    slideOutHorizontally { width -> -width } + fadeOut()
+                                )
+                            }
+                        ) { index ->
+                            Text(words[index].english,
+                                fontSize = 50.sp,
+                                textAlign = TextAlign.Center,
+                                color = colorScheme.secondary,
+                                modifier = Modifier.offset {
+                                    IntOffset(
+                                        shake.value.roundToInt(),
+                                        y = 0
+                                    )
+                                }
                             )
                         }
-                    ) { index ->
-                        Text(words[index].english, fontSize = 50.sp, textAlign = TextAlign.Center, color = colorScheme.secondary,
-                            modifier = Modifier.offset { IntOffset(shake.value.roundToInt(), y = 0) }
-                        )
-                    }
-
-                        Column(Modifier.padding(2.dp), horizontalAlignment = Alignment.CenterHorizontally){
+                        Column(
+                            Modifier.padding(2.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
 
                             Hint(
-                            iconUsed = true,
-                            initialText = "Description",
-                            expandedText = words[currentWordIndex].description,
-                            icon = Icons.Default.Info,
-                            isExpanded = isHintExpanded,
-                            onExpandChange = setHintExpanded
+                                iconUsed = true,
+                                initialText = "Description",
+                                expandedText = words[currentWordIndex].description,
+                                icon = Icons.Default.Info,
+                                isExpanded = isHintExpanded,
+                                onExpandChange = setHintExpanded
                             )
-                                Hint(
-                                    iconUsed = false,
-                                    initialText = "\uD83E\uDD37   See answer",
-                                    expandedText = words[currentWordIndex].russian,
-                                    icon = Icons.Default.Info,
-                                    isExpanded = isHintExpanded2,
-                                    onExpandChange = setHintExpanded2
-                                )
+                            Hint(
+                                iconUsed = false,
+                                initialText = "\uD83E\uDD37   See answer",
+                                expandedText = words[currentWordIndex].russian,
+                                icon = Icons.Default.Info,
+                                isExpanded = isHintExpanded2,
+                                onExpandChange = setHintExpanded2
+                            )
                         }
+                    }
                 }
             }
             if (isAlertDialogEnabled) {
@@ -1370,52 +1392,60 @@ fun WordTrainingScreenZen(
                         }
                     }
                 }
-            ) {
+            ) { paddingValues ->
                 LaunchedEffect(isKeyboardVisible.value) {
                     if (!isKeyboardVisible.value) {
                         focusManager.clearFocus()
                     }
                 }
-                Text(
-                    "Score: ${earnedScore}\n" +
-                            "Words count: ${words.size}",
-                    fontSize = 24.sp,
-                    modifier = Modifier
-                        .padding(bottom = 26.dp)
-                        .padding(horizontal = 26.dp)
-                        .padding(top = 50.dp),
-                    color = colorScheme.secondary,
-                    lineHeight = 40.sp,
-                    fontFamily = interFontFamily
-                )
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                        .padding(vertical = 250.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    if(isKeyboardVisible.value){
-                        Spacer(modifier = Modifier.height(200.dp)) // Adjust height as needed.
-                    }
-                    AnimatedContent(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        targetState = currentWordIndex,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
-                                slideOutHorizontally { width -> -width } + fadeOut()
-                            )
-                        }
-
-                    ) { index ->
-                        Text(words[index].english, fontSize = 50.sp, textAlign = TextAlign.Center, color = colorScheme.secondary,
-                            modifier = Modifier.offset { IntOffset(shake.value.roundToInt(), y = 0) }
+                Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                    Column() {
+                        Text(
+                            "Score: ${earnedScore}\n" +
+                                    "Words count: ${words.size}",
+                            fontSize = 24.sp,
+                            modifier = Modifier
+                                .padding(horizontal = 26.dp)
+                                .padding(top = 50.dp),
+                            color = colorScheme.secondary,
+                            lineHeight = 40.sp,
+                            fontFamily = interFontFamily
                         )
                     }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize(1f)
+                            .padding(horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        AnimatedContent(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            targetState = currentWordIndex,
+                            transitionSpec = {
+                                (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                                    slideOutHorizontally { width -> -width } + fadeOut()
+                                )
+                            }
 
-                    Column(Modifier.padding(2.dp), horizontalAlignment = Alignment.CenterHorizontally){
+                        ) { index ->
+                            Text(words[index].english,
+                                fontSize = 50.sp,
+                                textAlign = TextAlign.Center,
+                                color = colorScheme.secondary,
+                                modifier = Modifier.offset {
+                                    IntOffset(
+                                        shake.value.roundToInt(),
+                                        y = 0
+                                    )
+                                }
+                            )
+                        }
+                        Column(
+                            Modifier.padding(2.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Hint(
                                 iconUsed = true,
                                 initialText = "Description",
@@ -1432,6 +1462,7 @@ fun WordTrainingScreenZen(
                                 isExpanded = isHintExpanded2,
                                 onExpandChange = setHintExpanded2
                             )
+                        }
                     }
                 }
             }
@@ -1635,48 +1666,62 @@ fun WordTrainingScreenDescription(
                     }
                 }
             ) {
-                Text(
-                    "${currentWordIndex + 1}/${words.size}",
-                    fontSize = 50.sp,
-                    modifier = Modifier
-                        .padding(top = 32.dp)
-                        .padding(horizontal = 16.dp),
-                    color = colorScheme.secondary,
-                    style = TextStyle(fontFamily = interFontFamily)
-                )
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 300.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    if(isKeyboardVisible.value){
-                        Spacer(modifier = Modifier.height(200.dp))
-                    }
-                    AnimatedContent(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        targetState = currentWordIndex,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
-                                slideOutHorizontally { width -> -width } + fadeOut()
-                            )
-                        }
-
-                    ) { index ->
-                        Text(words[index].description, fontStyle = FontStyle.Italic, fontSize = 26.sp, textAlign = TextAlign.Center, color = colorScheme.secondary,
-                            modifier = Modifier.offset { IntOffset(shake.value.roundToInt(), y = 0) }
+                Column() {
+                    Column() {
+                        Text(
+                            "${currentWordIndex + 1}/${words.size}",
+                            fontSize = 50.sp,
+                            modifier = Modifier
+                                .padding(top = 32.dp)
+                                .padding(horizontal = 16.dp),
+                            color = colorScheme.secondary,
+                            style = TextStyle(fontFamily = interFontFamily)
                         )
                     }
-                            Hint(
-                                iconUsed = true,
-                                initialText = "Translation",
-                                expandedText = words[currentWordIndex].russian,
-                                icon = Icons.Default.Info,
-                                isExpanded = isHintExpanded,
-                                onExpandChange = setHintExpanded
+                    Column(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .padding(top = 25.dp)
+                            .fillMaxSize(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        if (isKeyboardVisible.value) {
+                            Spacer(modifier = Modifier.height(200.dp))
+                        }
+                        AnimatedContent(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            targetState = currentWordIndex,
+                            transitionSpec = {
+                                (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                                    slideOutHorizontally { width -> -width } + fadeOut()
+                                )
+                            }
+
+                        ) { index ->
+                            Text(words[index].description,
+                                fontStyle = FontStyle.Italic,
+                                fontSize = 26.sp,
+                                textAlign = TextAlign.Center,
+                                color = colorScheme.secondary,
+                                modifier = Modifier.offset {
+                                    IntOffset(
+                                        shake.value.roundToInt(),
+                                        y = 0
+                                    )
+                                }
                             )
-                        if(words.size >=4) {
+                        }
+                        Hint(
+                            iconUsed = true,
+                            initialText = "Translation",
+                            expandedText = words[currentWordIndex].russian,
+                            icon = Icons.Default.Info,
+                            isExpanded = isHintExpanded,
+                            onExpandChange = setHintExpanded
+                        )
+                        if (words.size >= 4) {
                             LaunchedEffect(currentWordIndex) {
                                 val randomPosition = (0..3).random()
                                 val remainingOptions =
@@ -1695,6 +1740,7 @@ fun WordTrainingScreenDescription(
                                     else -> colorScheme.primaryContainer
                                 }
                             }
+
                             val buttonColors = options.map { option ->
                                 animateColorAsState(
                                     targetValue = getButtonColor(option),
@@ -1708,7 +1754,11 @@ fun WordTrainingScreenDescription(
                                     showResults = true
                                     if (currentWordIndex + 1 == words.size) {
                                         navController.navigate(
-                                            "ResultsScreen/${elapsedTime / 1000}/$type/${convertWordsToJson(words)}/Description"
+                                            "ResultsScreen/${elapsedTime / 1000}/$type/${
+                                                convertWordsToJson(
+                                                    words
+                                                )
+                                            }/Description"
                                         )
                                     }
                                     triggerDelay = System.currentTimeMillis()
@@ -1720,39 +1770,44 @@ fun WordTrainingScreenDescription(
                                 }
 
                             }
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.padding(top = 48.dp)
-                                ) {
-                                    options.forEachIndexed { index, option ->
-                                        Button(
-                                            onClick = { onClick(option) },
-                                            shape = RoundedCornerShape(16.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = colorScheme.tertiary.copy(alpha = 0.5f), contentColor = buttonColors[index]),
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(top = 48.dp)
+                            ) {
+                                options.forEachIndexed { index, option ->
+                                    Button(
+                                        onClick = { onClick(option) },
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = colorScheme.tertiary.copy(
+                                                alpha = 0.5f
+                                            ), contentColor = buttonColors[index]
+                                        ),
+                                        modifier = Modifier
+                                            .width(200.dp)
+                                    ) {
+                                        Text(
+                                            option,
                                             modifier = Modifier
-                                                .width(200.dp)
-                                        ) {
-                                            Text(
-                                                option,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(3.dp),
-                                                textAlign = TextAlign.Center,
-                                                style = TextStyle(
-                                                    fontFamily = interFontFamily,
-                                                    fontWeight = FontWeight.Normal,
-                                                    fontStyle = FontStyle.Normal,
-                                                    fontSize = 18.sp
-                                                )
+                                                .fillMaxWidth()
+                                                .padding(3.dp),
+                                            textAlign = TextAlign.Center,
+                                            style = TextStyle(
+                                                fontFamily = interFontFamily,
+                                                fontWeight = FontWeight.Normal,
+                                                fontStyle = FontStyle.Normal,
+                                                fontSize = 18.sp
                                             )
+                                        )
 
-                                        }
                                     }
+                                }
 
+                            }
                         }
-                    }
 
+                    }
                 }
             }
             if (isAlertDialogEnabled) {
@@ -1850,6 +1905,9 @@ fun ResultsScreen(
             }
         }
         viewModel.checkForDeletion()
+    }
+    BackHandler {
+        navController.navigate("start")
     }
     val wordCount: Int = learnedWords.size
     val accuracy: String = buildString {
@@ -2121,7 +2179,12 @@ fun ResultsScreenZen(
     learnedWords: List<TestWord>,
     viewModel: ViewModel
 ) {
-    Log.d("ResultsScreenZen", "Learned words: $learnedWords")
+    BackHandler {
+        navController.navigate("start")
+    }
+    LaunchedEffect(Unit) {
+        Log.d("ResultsScreenZen", "Learned words: $learnedWords")
+    }
     val wordCount: Int = learnedWords.size
     val accuracy: String = buildString {
         var correctScore = 0
