@@ -60,4 +60,25 @@ class Repository (private val dataAccessObjects: DataAccessObjects){
     fun deleteAllMistakenWords(){
         dataAccessObjects.deleteAllMistakenWords()
     }
+    suspend fun insertTag(tag: DBType.Tag) {
+        dataAccessObjects.insertTag(tag)
+    }
+
+    suspend fun deleteTag(tag: DBType.Tag) {
+        dataAccessObjects.deleteTag(tag)
+    }
+
+    suspend fun deleteTagById(id: Int) {
+        dataAccessObjects.deleteTagById(id)
+    }
+
+    suspend fun updateTag(tag: DBType.Tag) {
+        dataAccessObjects.updateTag(tag)
+    }
+    val readTags: LiveData<List<DBType.Tag>> = dataAccessObjects.readAllTags()
+
+
+    suspend fun getTagsById(id: Int): DBType.Tag? {
+        return dataAccessObjects.getTags(id)
+    }
 }

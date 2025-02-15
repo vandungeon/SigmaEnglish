@@ -49,4 +49,22 @@ interface DataAccessObjects {
     @Query("SELECT id FROM WordsFailed WHERE english = :englishWord LIMIT 1")
     suspend fun getWordIdIfExists(englishWord: String): Int?
 
+    //Tags
+    @Upsert
+    suspend fun insertTag(tag: DBType.Tag)
+
+    @Delete
+    suspend fun deleteTag(tag: DBType.Tag)
+
+    @Update
+    suspend fun updateTag(tag: DBType.Tag)
+
+    @Query("SELECT * FROM Tag")
+    fun readAllTags(): LiveData<List<DBType.Tag>>
+
+    @Query("SELECT * FROM Tag WHERE id = :id LIMIT 1")
+    suspend fun getTags(id: Int): DBType.Tag?
+
+    @Query("DELETE FROM Tag WHERE id = :id")
+    suspend fun deleteTagById(id: Int)
 }

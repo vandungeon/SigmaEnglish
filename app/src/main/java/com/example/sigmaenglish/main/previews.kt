@@ -132,8 +132,8 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 item {
                     Row(Modifier.background(Color.Transparent)) {
-                        TableCell(text = "Original", weight = 1f)
-                        TableCell(text = "Translation", weight = 1f)
+                        TableCell(text = "Original", weight = 1f, null)
+                        TableCell(text = "Translation", weight = 1f, null)
                     }
                     Row(
                         modifier = Modifier
@@ -162,8 +162,8 @@ fun WordListScreenPreview(wordList: List<DBType.Word>, navController: NavHostCon
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            TableCell(text = word.english, weight = 1f)
-                            TableCell(text = word.russian, weight = 1f)
+                            TableCell(text = word.english, weight = 1f, null)
+                            TableCell(text = word.russian, weight = 1f, null)
                         }
                         Crossfade(targetState = isExpanded, animationSpec = tween(durationMillis = 300)) { expanded ->
                             if (expanded) {

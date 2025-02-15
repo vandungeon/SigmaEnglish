@@ -10,6 +10,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -85,8 +86,8 @@ import com.example.sigmaenglish.ui.theme.GoldSchemeYellow
 fun LogoImage() {
     Image(
         painter = painterResource(id = R.drawable.logo),
-        contentDescription = "My PNG Image",
-        contentScale = ContentScale.Fit, // (Crop, Fit, FillBounds)
+        contentDescription = "Logo",
+        contentScale = ContentScale.Fit,
         modifier = Modifier.size(150.dp)
     )
 }
@@ -97,7 +98,7 @@ fun GuideImage(painter: Painter) {
         .padding(top = 8.dp), color = colorScheme.primaryContainer)
     Image(
         painter = painter,
-        contentDescription = "My PNG Image",
+        contentDescription = "Guide image",
         contentScale = ContentScale.Fit,
         modifier = Modifier.size(300.dp)
     )
@@ -187,7 +188,6 @@ fun customButtonColors(): ButtonColors {
         disabledContentColor = Color.White.copy(alpha = 0.1f)
     )
 }
-
 @Composable
 fun CustomButton(
     text: String,
@@ -209,10 +209,13 @@ fun CustomButton(
 }
 
 
+
+
 @Composable
 fun RowScope.TableCell(
     text: String,
-    weight: Float
+    weight: Float,
+    modifier: Modifier?
 ) {
 
     Text(
@@ -228,6 +231,39 @@ fun RowScope.TableCell(
         style = standartText
     )
 }
+@Composable
+fun RowScope.CheckboxCell(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    weight: Float,
+    modifier: Modifier? = Modifier
+) {
+    Box(
+        modifier = Modifier
+            .weight(weight)
+            .then(
+                Modifier.border(
+                    BorderStroke(1.dp, colorScheme.secondary),
+                    shape = RectangleShape
+                )
+                    .padding(start = 0.dp)
+            )
+            .padding(8.dp)
+
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.align(Alignment.Center),
+            colors = CheckboxDefaults.colors(
+                uncheckedColor = colorScheme.secondary,
+                checkedColor = colorScheme.secondary,
+                checkmarkColor = colorScheme.primary
+            )
+        )
+    }
+}
+
 @Composable
 fun RowScope.TableCellHeader(
     text: String,
@@ -471,7 +507,50 @@ fun WordManagementDialog(
         }
     )
 }
+@Composable
+fun TagFolderManagementDialog(
+    tag: DBType.Tag,
+    onDelete: () -> Unit,
+    onUpdate: (DBType.Tag) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var tagFolderName by remember { mutableStateOf(tag.name) }
+    var enableButton by remember { mutableStateOf(false)}
+    fun validateInput(name: String): Boolean {
+        return name.isNotEmpty()
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Manage folder", style = dialogHeader) },
+        text = {
+            Column {
+                TextField(
+                    value = tagFolderName,
+                    onValueChange = { tagFolderName = it
+                        if(validateInput(tagFolderName)){enableButton = true}},
+                    label = { Text("Folder name") }
+                )
+            }
+        },
+        confirmButton = {
+            CustomButton(
+                enabled = enableButton,
+                onClick = {
+                    // Handle word update
+                    onUpdate(
+                        tag.copy(
+                            name = tagFolderName
+                        )
+                    )
+                }, text = "Update")
 
+        },
+        dismissButton = {
+            CustomButton(
+                onClick = onDelete, text = "Delete")
+        }
+    )
+}
 @Composable
 fun ImportWordsDialog(
     onConfirm: (list: List<TemplateWord>) -> Unit,

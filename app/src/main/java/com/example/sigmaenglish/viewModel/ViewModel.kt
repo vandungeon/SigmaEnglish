@@ -3,12 +3,12 @@ package com.example.sigmaenglish.viewModel
 import android.app.Application
 import android.content.Context
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.sigmaenglish.database.DBType
@@ -36,12 +36,23 @@ class ViewModel @Inject constructor(
     val words: LiveData<List<DBType.Word>> = _words
     private val _wordsFailed = MediatorLiveData<List<DBType.WordsFailed>>()
     val wordsFailed: LiveData<List<DBType.WordsFailed>> = _wordsFailed
+    private val _tags = MediatorLiveData<List<DBType.Tag>>()
+    val tags: LiveData<List<DBType.Tag>> = _tags
 
     private val context: Context get() = getApplication<Application>().applicationContext
 
     private val _isInitialized = mutableStateOf(false)
     val isInitialized: Boolean get() = _isInitialized.value
+    private val _selectedTag = MutableLiveData<DBType.Tag?>(null)
+    val selectedTag: LiveData<DBType.Tag?> get() = _selectedTag
 
+    fun setSelectedTag(obj: DBType.Tag) {
+        _selectedTag.value = obj
+    }
+
+    fun clearSelectedTag() {
+        _selectedTag.value = null
+    }
     init {
         repository = Repository(wordDAO)
         _words.addSource(repository.readAllData) { words ->
@@ -53,6 +64,10 @@ class ViewModel @Inject constructor(
             _wordsFailed.value = wordsFailed
             Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Words updated: $wordsFailed")
             checkInitialization()
+        }
+        _tags.addSource(repository.readTags){ tags ->
+            _tags.value = tags
+            Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Tags updated: $tags")
         }
     }
 
@@ -166,6 +181,42 @@ class ViewModel @Inject constructor(
         }
         refreshData()
     }
+
+    fun isTablet(): Boolean {
+        val metrics = context.resources.displayMetrics
+        val widthDp = metrics.widthPixels / metrics.density
+        return widthDp >= 600
+    }
+
+    fun addTag(tag: DBType.Tag) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertTag(tag)
+        }
+        refreshData()
+    }
+    fun updateTag(tag: DBType.Tag) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateTag(tag)
+        }
+        refreshData()
+    }
+    fun deleteTag(tag: DBType.Tag) {
+        Log.d("com.example.sigmaenglish.viewModel.ListOfNumbersViewModel", "Deleting tag: ${tag.name}")
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteTag(tag)
+            Log.d("com.example.sigmaenglish.viewModel.ListOfNumbersViewModel", "Tag deleted successfully")
+        }
+        refreshData()
+    }
+
+    fun deleteTagById(id: Int) {
+        Log.d("com.example.sigmaenglish.viewModel.deleteTagById", "Deleting tag by ID: $id")
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteTagById(id)
+            Log.d("com.example.sigmaenglish.viewModel.ListOfNumbersViewModel", "Tag deleted by ID successfully")
+        }
+        refreshData()
+    }
     private fun refreshData() {
         viewModelScope.launch(Dispatchers.IO) {
             val updatedWords = repository.readAllData
@@ -174,14 +225,13 @@ class ViewModel @Inject constructor(
             withContext(Dispatchers.Main) {
                 _words.value = updatedWords.value
                 _wordsFailed.value = updatedWordsFailed.value
+                _tags.value = repository.readTags.value ?: emptyList()
                 Log.d("com.example.sigmaenglish.viewModel.ViewModel", "Data refreshed")
             }
         }
     }
-    fun isTablet(): Boolean {
-        val metrics = context.resources.displayMetrics
-        val widthDp = metrics.widthPixels / metrics.density
-        return widthDp >= 600
-    }
 
+    suspend fun getTagById(id: Int): DBType.Tag? {
+        return repository.getTagsById(id)
+        }
 }
