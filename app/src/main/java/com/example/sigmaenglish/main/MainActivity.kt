@@ -68,10 +68,7 @@ import com.example.sigmaenglish.viewModel.ViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.window.Dialog
-import com.example.sigmaenglish.ui.theme.GoldSchemeYellow
 
 
 data class TestWord(
@@ -89,7 +86,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             SigmaEnglishTheme {
                 val viewModel: ViewModel by viewModels()
-                val wordList: List<DBType.Word> by viewModel.words.observeAsState(emptyList())
                 NavigationComponent(viewModel)
             }
         }
@@ -229,10 +225,8 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
     var resetMistakesListDialog by remember { mutableStateOf(false)}
     var isSortingDialogEnabled by remember { mutableStateOf(false) }
     val sortingOptions = listOf("Alphabetical ascending", "Alphabetical descending", "Newest", "Oldest", "Favorites")
-    var selectedOption by remember { mutableStateOf<String>("Newest") }
-    var searchText by remember {
-        mutableStateOf("")
-    }
+    var selectedOption by remember { mutableStateOf("Newest") }
+    var searchText by remember { mutableStateOf("") }
     val filteredList = wordList.filter{
         it.english.contains(searchText, ignoreCase = true) or it.russian.contains(searchText, ignoreCase = true)
     }
@@ -351,8 +345,6 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                                             unfocusedContainerColor = Color.Transparent
 
                                         ),
-
-
                                     )
                                 }
                             }
@@ -420,13 +412,13 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                TableCell(text = word.english, weight = 1f, null)
-                                TableCell(text = word.russian, weight = 1f, null)
+                                TableCell(text = word.english, weight = 1f)
+                                TableCell(text = word.russian, weight = 1f)
                             }
                             if(index == sortedList.size - 1 )HorizontalDivider(thickness = 1.dp, color = colorScheme.secondary)
                             Crossfade(
                                 targetState = isExpanded,
-                                animationSpec = tween(durationMillis = 300)
+                                animationSpec = tween(durationMillis = 300), label = ""
                             ) { expanded ->
                                 if (expanded) {
                                     var isFavorite = word.favorite
@@ -435,7 +427,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
                                             .padding(16.dp)
                                             .fillMaxWidth(1f), horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Box(){
+                                        Box{
                                             Icon(
                                                 imageVector = Icons.Default.Info,
                                                 tint = Color.Black,
@@ -570,7 +562,7 @@ fun WordListScreen(viewModel: ViewModel, navController: NavHostController) {
         },
             onDismiss = {
                 isSortingDialogEnabled = false
-            }, selectedOption = selectedOption)
+            }, previousOption = selectedOption)
     }
     if (resetMistakesListDialog) {
         AlertDialog(
@@ -624,7 +616,6 @@ fun TagsLibrary(viewModel: ViewModel, navController: NavHostController){
                         .fillMaxWidth(1f), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "Tags library",
-
                             fontFamily = montserratFontFamily,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -640,7 +631,6 @@ fun TagsLibrary(viewModel: ViewModel, navController: NavHostController){
                                     contentDescription = "Delete tag folders"
                                 )
                             }*/
-
                     }
                 }
             )
@@ -665,7 +655,7 @@ fun TagsLibrary(viewModel: ViewModel, navController: NavHostController){
                             TableCellHeader(text = "Tag folder name", weight = 1f)
                         }
                     }
-                    itemsIndexed(tagsList){ index, tag ->
+                    items(tagsList){tag ->
                         Row(modifier = Modifier
                             .fillMaxWidth()
                             .combinedClickable(
@@ -676,7 +666,7 @@ fun TagsLibrary(viewModel: ViewModel, navController: NavHostController){
                                 onLongClick = { selectedTag = tag }),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween){
-                            TableCell(text = tag.name, weight = 1f, null)
+                            TableCell(text = tag.name, weight = 1f)
                         }
                     }
                 }
@@ -685,25 +675,6 @@ fun TagsLibrary(viewModel: ViewModel, navController: NavHostController){
         }
     selectedTag?.let{ tag ->
         val coroutineScope = rememberCoroutineScope()
-/*        AlertDialog(
-            onDismissRequest = {selectedTag = null},
-            title = { Text("Delete tag", style = dialogHeader) },
-            text = {
-                Text("Do you wish to delete this tag folder?", style = standartText)
-            },
-            confirmButton = {
-                CustomButton(
-                    onClick = {
-                   viewModel.deleteTag(tag)
-                        selectedTag = null
-                    }, text = "Delete")
-
-            },
-            dismissButton = {
-                CustomButton(
-                    onClick = {selectedTag = null}, text = "Cancel")
-            }
-        )*/
         TagFolderManagementDialog(
             tag = tag,
             onDelete = {
@@ -746,7 +717,7 @@ fun TagsLibrary(viewModel: ViewModel, navController: NavHostController){
                             viewModel.addTag(DBType.Tag(name = tagName, numbers = emptyList()))
                             toggleAddTagDialog = false
 
-                    }, text = "Update")
+                    }, text = "Add")
 
             },
             dismissButton = {
@@ -759,33 +730,24 @@ fun TagsLibrary(viewModel: ViewModel, navController: NavHostController){
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SelectedTagScreen(viewModel: ViewModel, navController: NavHostController) {
-
     val selectedTag by viewModel.selectedTag.observeAsState(null)
     val tags by viewModel.tags.observeAsState(emptyList())
     val words by viewModel.words.observeAsState(emptyList())
-    val folderValue by remember(words, selectedTag) {
-        derivedStateOf {
-            words.filter { it.id in (selectedTag?.numbers ?: emptyList()) }
-        }
-    }
+    var folderValue by remember { mutableStateOf(listOf<DBType.Word>()) }
 
     val checkedIndices = mutableSetOf<Int>()
     var updateWordsTrigger by remember { mutableLongStateOf(0L) }
-    var toggleSelection by remember {
-        mutableStateOf(false)
-    }
-    var toggleAddition by remember {
-        mutableStateOf(false)
-    }
+    var toggleSelection by remember { mutableStateOf(false) }
+    var toggleAddition by remember { mutableStateOf(false) }
     BackHandler {
         navController.navigate("Tags")
     }
-/*    LaunchedEffect(selectedTag, Unit, tags, updateWordsTrigger) {
+    LaunchedEffect(selectedTag, Unit, tags, updateWordsTrigger) {
         Log.d("SelectedTagScreen", "foldervalue is ${folderValue}, selected tag is $selectedTag")
         tags.find { it.id == selectedTag?.id }?.let { viewModel.setSelectedTag(it) }
         folderValue = words.filter{ it.id in (selectedTag?.numbers ?: emptyList()) }.map { it }
         Log.d("SelectedTagScreen", "foldervalue is ${folderValue}, selected tag is $selectedTag")
-    }*/
+    }
     var selectedWord by remember { mutableStateOf<DBType.Word?>(null) }
     Scaffold(
         topBar = {
@@ -854,18 +816,19 @@ fun SelectedTagScreen(viewModel: ViewModel, navController: NavHostController) {
                             TableCellHeader(text = "Tag folder name", weight = 1f)
                         }
                     }
-                    itemsIndexed(folderValue){ _, word ->
+                    items(folderValue){word ->
                         var currentState by remember { mutableStateOf(word.id in checkedIndices) }
                         Row(modifier = Modifier
                             .fillMaxWidth()
                             .combinedClickable(
                                 onClick = { },
-                                onLongClick = {selectedWord = word })
-                            .height(35.dp).animateContentSize(),
+                                onLongClick = { selectedWord = word })
+                            .height(35.dp)
+                            .animateContentSize(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween){
-                            TableCell(text = word.english, weight = 1f, null)
-                            TableCell(text = word.russian, weight = 1f, null)
+                            TableCell(text = word.english, weight = 1f)
+                            TableCell(text = word.russian, weight = 1f)
                             if (toggleSelection) {
                                 CheckboxCell(
                                     checked = currentState,
@@ -896,6 +859,7 @@ fun SelectedTagScreen(viewModel: ViewModel, navController: NavHostController) {
                 coroutineScope.launch {
                     viewModel.deleteWord(word)
                     viewModel.deleteMistakenWord(word.english)
+                    updateWordsTrigger = System.currentTimeMillis()
                     selectedWord = null
                 }
             },
@@ -924,22 +888,96 @@ fun SelectedTagScreen(viewModel: ViewModel, navController: NavHostController) {
         )
     }
     if (toggleAddition){
-        val checkedIds by remember { mutableStateOf(mutableListOf<Int>()) }
-        val availableWords = words.filter { it.id !in selectedTag?.numbers.orEmpty() }
+        val checkedIds = mutableListOf<Int>()
+        var searchText by remember { mutableStateOf("") }
+        val focusRequester = remember { FocusRequester() }
+        val availableWords = words.filter { (it.id !in selectedTag?.numbers.orEmpty())
+                && (it.english.contains(searchText, ignoreCase = true) or it.russian.contains(searchText, ignoreCase = true))}
         var buttonEnabled by remember { mutableStateOf(false) }
-            Dialog(onDismissRequest = {toggleAddition = !toggleAddition},) {
+            Dialog(onDismissRequest = {toggleAddition = !toggleAddition}) {
                 Surface(
                     shape = MaterialTheme.shapes.medium,
-                    color = colorScheme.primaryContainer
+                    color = colorScheme.primaryContainer,
+                    modifier = Modifier
+                        .wrapContentHeight()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Select Words to Add",
-                            style = dialogHeader
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(1f),
+                            horizontalArrangement = Arrangement.Center){
+                            Text(
+                                text = "Select Words to Add",
+                                style = dialogHeader,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
 
-                        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(colorScheme.secondary),
+                            modifier = Modifier
+                                .clickable(onClick = { })
+                                .border(
+                                    BorderStroke(2.dp, color = colorScheme.tertiary),
+                                    shape = RoundedCornerShape(16.dp)
+                                ),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(all = 0.dp)
+                                    .height(58.dp) // Fixed height for search
+                                    .fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(modifier = Modifier.width(20.dp))
+                                Icon(
+                                    Icons.Default.Search,
+                                    contentDescription = "Search",
+                                    tint = GoldSchemeWhite,
+                                    modifier = Modifier.padding(vertical = 16.dp, horizontal = 0.dp)
+                                )
+                                TextField(
+                                    value = searchText,
+                                    onValueChange = { newText -> searchText = newText },
+                                    placeholder = {
+                                        Text(
+                                            color = colorScheme.tertiary,
+                                            text = "Search",
+                                            style = TextStyle(
+                                                fontFamily = montserratFontFamily,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontStyle = FontStyle.Normal,
+                                                fontSize = 14.sp
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 0.dp)
+                                        )
+                                    },
+                                    textStyle = TextStyle(
+                                        fontFamily = montserratFontFamily,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontStyle = FontStyle.Normal,
+                                        fontSize = 14.sp
+                                    ),
+                                    modifier = Modifier
+                                        .padding(horizontal = 0.dp)
+                                        .fillMaxWidth()
+                                        .focusRequester(focusRequester),
+                                    colors = TextFieldDefaults.colors(
+                                        focusedTextColor = GoldSchemeWhite,
+                                        focusedIndicatorColor = Color.Transparent,
+                                        unfocusedIndicatorColor = Color.Transparent,
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent
+                                    ),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 300.dp)
+                                .weight(1f, fill = false)
+                        ) {
                             items(availableWords) { word ->
                                 var currentState by remember { mutableStateOf(word.id in checkedIds) }
                                 Row(
@@ -949,7 +987,12 @@ fun SelectedTagScreen(viewModel: ViewModel, navController: NavHostController) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(text = word.english, modifier = Modifier.weight(1f), style = standartText, color = GoldSchemeWhite)
+                                    Text(
+                                        text = word.english,
+                                        modifier = Modifier.weight(1f),
+                                        style = standartText,
+                                        color = GoldSchemeWhite
+                                    )
                                     Checkbox(
                                         checked = currentState,
                                         onCheckedChange = { isChecked ->
@@ -957,12 +1000,18 @@ fun SelectedTagScreen(viewModel: ViewModel, navController: NavHostController) {
                                                 checkedIds.add(word.id)
                                                 currentState = word.id in checkedIds
                                                 buttonEnabled = checkedIds.isNotEmpty()
-                                                Log.d("SelectedTagScreen", "$checkedIds, word.id in checkedIds = ${word.id in checkedIds}")
+                                                Log.d(
+                                                    "SelectedTagScreen",
+                                                    "$checkedIds, word.id in checkedIds = ${word.id in checkedIds}"
+                                                )
                                             } else {
                                                 checkedIds.remove(word.id)
                                                 currentState = word.id in checkedIds
                                                 buttonEnabled = checkedIds.isNotEmpty()
-                                                Log.d("SelectedTagScreen", "$checkedIds, word.id in checkedIds = ${word.id in checkedIds}")
+                                                Log.d(
+                                                    "SelectedTagScreen",
+                                                    "$checkedIds, word.id in checkedIds = ${word.id in checkedIds}"
+                                                )
                                             }
                                         }
                                     )
@@ -974,13 +1023,18 @@ fun SelectedTagScreen(viewModel: ViewModel, navController: NavHostController) {
                             "Add words",
                             onClick = {
                                 if (checkedIds.isNotEmpty()) {
-                                    val temp = (selectedTag?.numbers ?: emptyList()) + checkedIds.toList()
+                                    val temp = (selectedTag?.numbers
+                                        ?: emptyList()) + checkedIds.toList()
                                     selectedTag?.let { viewModel.updateTag(it.copy(numbers = temp)) }
                                     toggleAddition = !toggleAddition
+                                    updateWordsTrigger = System.currentTimeMillis()
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = buttonEnabled)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            enabled = buttonEnabled
+                        )
                     }
                 }
         }

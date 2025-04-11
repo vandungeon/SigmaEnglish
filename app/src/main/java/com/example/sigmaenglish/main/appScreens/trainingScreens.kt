@@ -41,7 +41,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
@@ -379,7 +378,7 @@ import kotlin.math.roundToInt
                                     onLongClick = { }),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween){
-                                TableCell(text = tag.name, weight = 1f, null)
+                                TableCell(text = tag.name, weight = 1f)
                             }
                         }
                     }
@@ -778,27 +777,29 @@ import kotlin.math.roundToInt
                 },
                 title = { Text("No words to form training on!", style = dialogHeader) },
                 text = {
-                    if (wordSourse == "Classic") {
-                        Text(
-                            "To form a training list, you should first add some words.\n" +
-                                    " Would you like to be navigated to Word list screen to add some new words?",
-                            style = dialogMain
-                        )
-                    }
-                    else if (wordSourse == "Tags"){
-                        Text(
-                            "Your tag doesn't contain enough words to form a training.\n" +
-                                    " Would you like to be navigated to tag folders screen?",
-                            style = dialogMain
-                        )
-                    }
-                    else {
-                        Text(
-                            "You quite literally have no mistakes to correct, as of now.\n" +
-                                    "For now, keep up the good work!\nBut test to learn frequently" +
-                                    " failed words can't be generated," +
-                                    " for obvious reasons.", style = dialogMain
-                        )
+                    when (wordSourse) {
+                        "Mistakes" -> {
+                            Text(
+                                "You quite literally have no mistakes to correct, as of now.\n" +
+                                        "For now, keep up the good work!\nBut test to learn frequently" +
+                                        " failed words can't be generated," +
+                                        " for obvious reasons.", style = dialogMain
+                            )
+                        }
+                        "Tags" -> {
+                            Text(
+                                "Your tag doesn't contain enough words to form a training.\n" +
+                                        " Would you like to be navigated to tag folders screen?",
+                                style = dialogMain
+                            )
+                        }
+                        else -> {
+                            Text(
+                                "To form a training list, you should first add some words.\n" +
+                                        " Would you like to be navigated to Word list screen to add some new words?",
+                                style = dialogMain
+                            )
+                        }
                     }
                 },
                 confirmButton = {

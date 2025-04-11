@@ -1,7 +1,5 @@
 package com.example.sigmaenglish.main
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.util.Log
 import androidx.compose.animation.animateContentSize
@@ -21,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -65,7 +62,6 @@ import com.example.sigmaenglish.database.DBType
 import com.example.sigmaenglish.R
 import com.example.sigmaenglish.ui.theme.GoldSchemeWhite
 import com.example.sigmaenglish.ui.theme.SigmaEnglishTheme
-import com.example.sigmaenglish.viewModel.ViewModel
 import com.example.sigmaenglish.ui.theme.customText
 import com.example.sigmaenglish.ui.theme.customTitle
 import com.example.sigmaenglish.ui.theme.dialogMain
@@ -79,7 +75,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.painter.Painter
-import com.example.sigmaenglish.ui.theme.GoldSchemeBlack
 import com.example.sigmaenglish.ui.theme.GoldSchemeYellow
 
 @Composable
@@ -117,7 +112,7 @@ data class ExpandableItem(
 @Composable
 fun ExpandableItemComposable(item: ExpandableItem, level: Int = 0) {
     var expanded by remember { mutableStateOf(false) }
-    val rotationAngle by animateFloatAsState(targetValue = if (expanded) 180f else 0f)
+    val rotationAngle by animateFloatAsState(targetValue = if (expanded) 180f else 0f, label = "")
     Column(
         modifier = Modifier
             .animateContentSize()
@@ -214,8 +209,7 @@ fun CustomButton(
 @Composable
 fun RowScope.TableCell(
     text: String,
-    weight: Float,
-    modifier: Modifier?
+    weight: Float
 ) {
 
     Text(
@@ -235,8 +229,7 @@ fun RowScope.TableCell(
 fun RowScope.CheckboxCell(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    weight: Float,
-    modifier: Modifier? = Modifier
+    weight: Float
 ) {
     Box(
         modifier = Modifier
@@ -563,8 +556,8 @@ fun ImportWordsDialog(
     var enableConfirmButton by remember { mutableStateOf(false) }
     var noWordsDialog by remember { mutableStateOf(false) }
     var showIssueResolver by remember { mutableStateOf(false) }
-    var blankIds by remember { mutableStateOf(mutableListOf<Int>()) }
-    var parsedList by remember { mutableStateOf(mutableListOf<TemplateWord>()) }
+    var blankIds = mutableListOf<Int>()
+    var parsedList = mutableListOf<TemplateWord>()
     var currentBlankIndex by remember { mutableIntStateOf(0) }
 
     fun validateInput(eng: String): Boolean {
@@ -829,8 +822,7 @@ fun ExportWordsDialog(
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     )
-    val clipboardText = wordsFormated
-    var enableButton by remember { mutableStateOf(wordsFormated.isNotEmpty()) }
+    val enableButton by remember { mutableStateOf(wordsFormated.isNotEmpty()) }
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = colorScheme.primaryContainer,
@@ -872,7 +864,7 @@ fun ExportWordsDialog(
             CustomButton(
                 enabled = enableButton,
                 onClick = {
-                    copyTextToClipboard(context, "Exported words", clipboardText);
+                    copyTextToClipboard(context, "Exported words", wordsFormated)
                     onDismiss()
                 },text ="Copy words")
         },
@@ -887,12 +879,12 @@ fun ExportWordsDialog(
 @Composable
 fun OptionDialog(
     options: List<String>,
-    selectedOption: String,
+    previousOption: String,
     onOptionSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
 
-    var _selectedOption by remember { mutableStateOf<String>(selectedOption) }
+    var selectedOption by remember { mutableStateOf(previousOption) }
 
     AlertDialog(
         containerColor = colorScheme.primaryContainer,
@@ -903,7 +895,7 @@ fun OptionDialog(
                 items(options) { option ->
                     Text(
                         text = "•   $option",
-                        style = if (option == _selectedOption) {TextStyle(
+                        style = if (option == selectedOption) {TextStyle(
                             fontFamily = interFontFamily,
                             fontWeight = FontWeight.Bold,
                             color = GoldSchemeYellow,
@@ -915,7 +907,7 @@ fun OptionDialog(
                             .fillMaxWidth()
                             .padding(16.dp)
                             .clickable {
-                                _selectedOption = option
+                                selectedOption = option
                                 onOptionSelected(option)
                                 onDismiss()
                             }
